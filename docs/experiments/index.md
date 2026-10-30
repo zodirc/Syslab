@@ -4,6 +4,8 @@
 
 | ID | 目录 |
 |---|---|
+| OBJ-001 | `experiments/object/copy` |
+| OBJ-002 | `experiments/object/move` |
 | CPU-001 | `experiments/cpu/integer-float` |
 | CPU-002 | `experiments/cpu/call-return` |
 | CPU-003 | `experiments/cpu/stack-frame` |
