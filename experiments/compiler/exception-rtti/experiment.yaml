@@ -1,0 +1,52 @@
+schema_version: 1
+experiment:
+  id: RT-002
+  name: exception-and-typeid
+  module: runtime.exception
+  description: "Catch a derived exception through a base handler and read its dynamic type."
+  risk: normal
+  tags:
+    - runtime
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_rt_002
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_rt_002
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - disassembly
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - exception
+    - rtti
+  basis:
+    - LANG
+    - ABI

@@ -1,0 +1,50 @@
+schema_version: 1
+experiment:
+  id: CPU-006
+  name: elf-header
+  module: cpu.elf
+  description: "Read the ELF identification of the running executable."
+  risk: normal
+  tags:
+    - cpu
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_cpu_006
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_cpu_006
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - elf
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - elf
+  basis:
+    - ABI

@@ -1,0 +1,50 @@
+schema_version: 1
+experiment:
+  id: CPU-001
+  name: integer-float-representation
+  module: cpu.representation
+  description: "Check two's complement and IEC 559 single-precision encoding."
+  risk: normal
+  tags:
+    - cpu
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_cpu_001
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_cpu_001
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - twos-complement
+    - ieee754
+  basis:
+    - LANG

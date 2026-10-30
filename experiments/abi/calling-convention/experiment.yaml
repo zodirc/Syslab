@@ -1,0 +1,55 @@
+schema_version: 1
+experiment:
+  id: CPU-004
+  name: sysv-aarch64-abi-sum
+  module: cpu.abi
+  description: "Sum six integer arguments with an architecture assembly stub."
+  risk: normal
+  tags:
+    - cpu
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_cpu_004
+  standard: c++20
+  sources:
+    - main.cpp
+    - abi_sum.S
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_cpu_004
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - disassembly
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - sysv-amd64
+    - aarch64-pcs
+  basis:
+    - ABI
+    - ISA
