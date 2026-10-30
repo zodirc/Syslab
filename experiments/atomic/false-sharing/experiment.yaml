@@ -1,0 +1,50 @@
+schema_version: 1
+experiment:
+  id: AT-008
+  name: false-sharing
+  module: atomic.false-sharing
+  description: "Record adjacent and padded atomic increments. Correctness does not rank their speed."
+  risk: resource_intensive
+  tags:
+    - atomic
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_at_008
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_at_008
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - false-sharing
+  basis:
+    - LANG
+    - MICROARCH
