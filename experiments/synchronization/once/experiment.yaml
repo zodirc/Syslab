@@ -1,0 +1,50 @@
+schema_version: 1
+experiment:
+  id: SYNC-010
+  name: mutex-slow-path-and-once
+  module: synchronization.lock
+  description: "Enter the mutex slow path under contention and run once-initialization once."
+  risk: normal
+  tags:
+    - synchronization
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_sync_010
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_sync_010
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - futex
+    - once
+  basis:
+    - OBSERVED
