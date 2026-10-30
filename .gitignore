@@ -1,0 +1,69 @@
+# Build trees
+/build/
+/out/
+/cmake-build-*/
+**/CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+rules.ninja
+
+# Compiled objects and libraries
+*.o
+*.obj
+*.a
+*.so
+*.so.*
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Debug, coverage, and sanitizer output
+*.dSYM/
+*.gcda
+*.gcno
+*.gcov
+*.profraw
+*.profdata
+/coverage/
+core
+core.*
+vgcore.*
+
+# Experiment runtime data
+/artifacts/
+
+# Traces and performance captures
+perf.data
+perf.data.old
+*.perf.data
+*.trace
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Editors and OS files
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Local caches
+.cache/
+.ccache/
+*.qcow2
+*.img
