@@ -33,8 +33,8 @@ rules.ninja
 *.profraw
 *.profdata
 /coverage/
-core
-core.*
+/core
+/core.*
 vgcore.*
 
 # Experiment runtime data
