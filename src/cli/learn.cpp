@@ -237,7 +237,11 @@ std::map<std::string, std::string> load_figures(const std::string& root) {
 }
 
 struct LessonBrief {
-  std::string application;
+  std::string focus;
+  std::string background;
+  std::string language;
+  std::string mechanism;
+  std::string program;
   std::string principle;
 };
 
@@ -265,8 +269,15 @@ LessonCopy load_briefs(const std::string& root) {
   };
   auto flush_brief = [&]() {
     if (!current_id.empty()) {
-      brief.application = trim_copy(brief.application);
+      brief.focus = trim_copy(brief.focus);
+      brief.background = trim_copy(brief.background);
+      brief.language = trim_copy(brief.language);
+      brief.mechanism = trim_copy(brief.mechanism);
+      brief.program = trim_copy(brief.program);
       brief.principle = trim_copy(brief.principle);
+      if (brief.mechanism.empty()) {
+        brief.mechanism = brief.principle;
+      }
       copy.briefs[current_id] = std::move(brief);
       brief = LessonBrief{};
     }
@@ -299,12 +310,24 @@ LessonCopy load_briefs(const std::string& root) {
       group_body += '\n';
       continue;
     }
-    if (line == "应用") {
-      field = &brief.application;
+    if (line == "重点") {
+      field = &brief.focus;
       continue;
     }
-    if (line == "原理") {
-      field = &brief.principle;
+    if (line == "背景" || line == "应用") {
+      field = &brief.background;
+      continue;
+    }
+    if (line == "语言") {
+      field = &brief.language;
+      continue;
+    }
+    if (line == "机制" || line == "原理") {
+      field = &brief.mechanism;
+      continue;
+    }
+    if (line == "程序") {
+      field = &brief.program;
       continue;
     }
     if (line == "证明") {
@@ -733,7 +756,13 @@ const char* kStyle =
     "aside a:hover{background:var(--accent-soft)}"
     "aside a.active{background:var(--accent-soft);color:var(--accent);font-weight:650}"
     "main{flex:1;min-width:0;padding:28px 36px 72px;max-width:920px}"
-    "h1{font-size:28px;line-height:1.3;font-weight:650;letter-spacing:-.02em;margin:6px 0 18px}"
+    "h1{font-size:28px;line-height:1.3;font-weight:650;letter-spacing:-.02em;margin:6px 0 14px}"
+    ".focus{background:#1f4e79;color:#fff;border-radius:12px;padding:16px 20px;margin:0 0 16px}"
+    ".focus span{display:block;font-size:12px;letter-spacing:.08em;opacity:.8;margin-bottom:4px}"
+    ".focus p{margin:0;font-size:20px;line-height:1.45;font-weight:650}"
+    ".layer{margin:0 0 14px;padding:0 0 0 12px;border-left:3px solid var(--accent)}"
+    ".layer h3{margin:0 0 4px;color:var(--accent);font-size:13px}"
+    "figcaption{margin:8px 4px 0;color:var(--muted);font-size:14px}"
     "h2{margin:0 0 14px;font-size:15px;font-weight:650;color:var(--accent)}"
     "h3{margin:14px 0 6px;font-size:13px;font-weight:650;color:var(--muted)}"
     ".meta{margin:0;color:var(--muted);font-size:14px}"
@@ -1044,24 +1073,38 @@ void write_course_page(const std::string& root, const std::vector<Lesson>& lesso
     }
     page << "</p>\n<h1>" << html_escape(lesson.title) << "</h1>\n";
     const auto brief = copy.briefs.find(lesson.id);
+    const bool has_brief = brief != copy.briefs.end();
+    const std::string focus = has_brief && !brief->second.focus.empty() ? brief->second.focus : lesson.title;
+    page << "<div class=\"focus\"><span>本节要回答</span><p>" << html_escape(focus) << "</p></div>\n";
+    page << "<section><h2>背景</h2>\n";
     const auto group_text = copy.groups.find(lesson.group);
-    page << "<section><h2>应用中的问题</h2>\n";
     if (group_text != copy.groups.end()) {
       page << paragraph_html(group_text->second);
     }
-    if (brief != copy.briefs.end() && !brief->second.application.empty()) {
-      page << paragraph_html(brief->second.application);
+    if (has_brief && !brief->second.background.empty()) {
+      page << paragraph_html(brief->second.background);
     }
-    page << "</section>\n<section><h2>这一层的机制</h2>\n";
-    if (brief != copy.briefs.end() && !brief->second.principle.empty()) {
-      page << paragraph_html(brief->second.principle);
+    page << "</section>\n<section><h2>逐层说明</h2>\n";
+    auto emit_layer = [&](const char* name, const std::string& body) {
+      if (body.empty()) {
+        return;
+      }
+      page << "<div class=\"layer\"><h3>" << name << "</h3>\n" << paragraph_html(body) << "</div>\n";
+    };
+    if (has_brief) {
+      emit_layer("语言", brief->second.language);
+      emit_layer("机制", brief->second.mechanism);
     }
     const std::string figure_text = figure == figures.end() ? std::string() : figure->second;
     if (!figure_text.empty()) {
       page << figure_html(figure_text);
+      page << "<figcaption>" << html_escape(focus) << "</figcaption>\n";
+    }
+    if (has_brief) {
+      emit_layer("本节程序", brief->second.program);
     }
     if (!checks.empty()) {
-      page << "<p>程序要成立的事实：" << html_escape(checks) << "</p>\n";
+      page << "<p><strong>核对条件。</strong> " << html_escape(checks) << "</p>\n";
     }
     page << "</section>\n<section><h2>程序证明</h2>\n"
          << demo_html(lesson.id, "", "", fresh ? fresh_runs : std::vector<RunView>{},
@@ -1070,7 +1113,7 @@ void write_course_page(const std::string& root, const std::vector<Lesson>& lesso
     if (!limit.empty()) {
       page << paragraph_html(limit);
     }
-    page << "<p>出现同类故障时，先核对：" << html_escape(lesson.diagnose) << "</p>\n";
+    page << "<p>对照：" << html_escape(lesson.diagnose) << "</p>\n";
     page << "</section>\n<section><h2>源码</h2>\n" << sources_html(manifest.directory) << "</section>\n</article>\n";
   }
   page << "</main></div>\n<script>\n"
@@ -1135,8 +1178,17 @@ void print_terminal(const std::string& root, const std::vector<Lesson>& lessons,
   }
   const auto brief = copy.briefs.find(lesson.id);
   if (brief != copy.briefs.end()) {
-    std::cout << "应用中的问题\n" << brief->second.application << "\n\n";
-    std::cout << "这一层的机制\n" << brief->second.principle << "\n\n";
+    if (!brief->second.focus.empty()) {
+      std::cout << "本节要回答\n" << brief->second.focus << "\n\n";
+    }
+    std::cout << "背景\n" << brief->second.background << "\n\n";
+    if (!brief->second.language.empty()) {
+      std::cout << "语言\n" << brief->second.language << "\n\n";
+    }
+    std::cout << "机制\n" << brief->second.mechanism << "\n\n";
+    if (!brief->second.program.empty()) {
+      std::cout << "本节程序\n" << brief->second.program << "\n\n";
+    }
   }
   const auto figure = figures.find(lesson.id);
   if (figure != figures.end() && !figure->second.empty()) {
