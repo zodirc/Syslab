@@ -1,0 +1,100 @@
+#pragma once
+
+// Compatibility shim for libstdc++ 8, which does not ship <coroutine>.
+// Clang 12 on that library looks up std::experimental::coroutine_traits.
+// A standard library that provides <coroutine> must be preferred by the build.
+
+#include <cstddef>
+#include <type_traits>
+
+namespace std {
+namespace experimental {
+
+template <class Result, class... Arguments>
+struct coroutine_traits {
+  using promise_type = typename Result::promise_type;
+};
+
+template <class Promise = void>
+class coroutine_handle;
+
+template <>
+class coroutine_handle<void> {
+ public:
+  constexpr coroutine_handle() noexcept = default;
+  constexpr coroutine_handle(std::nullptr_t) noexcept {}
+  constexpr coroutine_handle& operator=(std::nullptr_t) noexcept {
+    pointer_ = nullptr;
+    return *this;
+  }
+  constexpr void* address() const noexcept { return pointer_; }
+  static constexpr coroutine_handle from_address(void* address) noexcept {
+    coroutine_handle handle;
+    handle.pointer_ = address;
+    return handle;
+  }
+  constexpr explicit operator bool() const noexcept { return pointer_ != nullptr; }
+  bool done() const { return __builtin_coro_done(pointer_); }
+  void resume() const { __builtin_coro_resume(pointer_); }
+  void destroy() const { __builtin_coro_destroy(pointer_); }
+
+  friend constexpr bool operator==(coroutine_handle left, coroutine_handle right) noexcept {
+    return left.pointer_ == right.pointer_;
+  }
+  friend constexpr bool operator!=(coroutine_handle left, coroutine_handle right) noexcept {
+    return !(left == right);
+  }
+
+ protected:
+  void* pointer_ = nullptr;
+};
+
+template <class Promise>
+class coroutine_handle : public coroutine_handle<void> {
+ public:
+  using coroutine_handle<void>::coroutine_handle;
+  using coroutine_handle<void>::operator=;
+
+  static coroutine_handle from_promise(Promise& promise) noexcept {
+    coroutine_handle handle;
+    handle.pointer_ = __builtin_coro_promise(&promise, alignof(Promise), true);
+    return handle;
+  }
+
+  Promise& promise() const {
+    return *static_cast<Promise*>(__builtin_coro_promise(this->pointer_, alignof(Promise), false));
+  }
+
+  static constexpr coroutine_handle from_address(void* address) noexcept {
+    coroutine_handle handle;
+    handle.pointer_ = address;
+    return handle;
+  }
+};
+
+struct suspend_never {
+  constexpr bool await_ready() const noexcept { return true; }
+  constexpr void await_suspend(coroutine_handle<>) const noexcept {}
+  constexpr void await_resume() const noexcept {}
+};
+
+struct suspend_always {
+  constexpr bool await_ready() const noexcept { return false; }
+  constexpr void await_suspend(coroutine_handle<>) const noexcept {}
+  constexpr void await_resume() const noexcept {}
+};
+
+}  // namespace experimental
+
+template <class Result, class... Arguments>
+struct coroutine_traits {
+  using promise_type = typename Result::promise_type;
+};
+
+template <class Promise = void>
+using coroutine_handle = experimental::coroutine_handle<Promise>;
+
+using experimental::suspend_always;
+using experimental::suspend_never;
+
+}  // namespace std
