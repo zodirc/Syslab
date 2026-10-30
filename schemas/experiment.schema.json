@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syslab.local/schemas/experiment.schema.json",
+  "title": "SysLab experiment manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "experiment", "platform", "build", "run", "verify", "artifacts"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "experiment": {
+      "type": "object",
+      "required": ["id", "name", "module", "description", "risk"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[A-Z]+-[0-9]{3}$" },
+        "name": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+$" },
+        "module": { "type": "string" },
+        "description": { "type": "string", "minLength": 1 },
+        "risk": {
+          "enum": ["readonly", "read_only", "R0", "normal", "R1", "resource_intensive", "R2", "kernel_privileged", "R3", "bare_metal", "R4"]
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "required_capabilities": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "required": ["os", "architectures"],
+      "properties": {
+        "os": { "const": "linux" },
+        "architectures": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "enum": ["x86_64", "aarch64"] }
+        }
+      }
+    },
+    "build": {
+      "type": "object",
+      "required": ["target", "standard", "variants"],
+      "properties": {
+        "target": { "type": "string" },
+        "standard": { "enum": ["c++20", "c++17", "c17"] },
+        "sources": { "type": "array", "items": { "type": "string" } },
+        "link": { "type": "array", "items": { "type": "string" } },
+        "variants": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "build_type"],
+            "properties": {
+              "name": { "type": "string" },
+              "build_type": { "enum": ["Debug", "Release", "RelWithDebInfo"] },
+              "flags": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "properties": {
+        "executable": { "type": "string" },
+        "timeout_ms": { "type": "integer", "minimum": 1, "maximum": 600000 },
+        "repetitions": { "type": "integer", "minimum": 1, "maximum": 100000 },
+        "arguments": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "observe": {
+      "type": "array",
+      "items": {
+        "enum": ["disassembly", "syscall_trace", "strace", "scheduler_trace", "performance_counter", "perf", "memory_map", "thread_state", "allocator_statistics", "sanitizer_report", "debugger_snapshot", "stdout", "stderr", "compiler_metadata", "exit_status", "elf"]
+      }
+    },
+    "verify": {
+      "type": "object",
+      "required": ["checks"],
+      "properties": {
+        "checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "type", "expected"],
+            "properties": {
+              "name": { "type": "string" },
+              "type": { "enum": ["exit_code", "stdout_contains", "stderr_contains", "result_marker"] },
+              "expected": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "properties": {
+        "preserve": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "knowledge": {
+      "type": "object",
+      "properties": {
+        "prerequisites": { "type": "array", "items": { "type": "string" } },
+        "concepts": { "type": "array", "items": { "type": "string" } },
+        "basis": {
+          "type": "array",
+          "items": { "enum": ["LANG", "ABI", "COMPILER", "OS", "ISA", "MICROARCH", "OBSERVED"] }
+        }
+      }
+    }
+  }
+}

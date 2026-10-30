@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://syslab.local/schemas/report.schema.json",
+  "title": "SysLab run summary",
+  "description": "JSON emitted by syslab run. The Markdown report is report.md in the run directory and is not this object.",
+  "type": "object",
+  "required": ["id", "state"],
+  "properties": {
+    "id": { "type": "string" },
+    "state": {
+      "enum": ["PASSED", "FAILED", "UNSUPPORTED", "INTERRUPTED", "BUILT"]
+    },
+    "failure_class": {
+      "enum": ["", "build", "verification", "timed_out", "output_limit", "resource_limit", "unsupported", "interrupted"]
+    },
+    "message": { "type": "string" },
+    "run_directory": { "type": "string" }
+  }
+}
