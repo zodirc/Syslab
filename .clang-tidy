@@ -1,0 +1,8 @@
+Checks: >
+  bugprone-*,
+  performance-*,
+  readability-misleading-indentation,
+  -bugprone-easily-swappable-parameters
+WarningsAsErrors: ''
+HeaderFilterRegex: 'include/syslab/.*'
+FormatStyle: file
