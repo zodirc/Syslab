@@ -1,0 +1,51 @@
+schema_version: 1
+experiment:
+  id: CTR-005
+  name: uts-namespace
+  module: container.uts
+  description: "Change the hostname inside a new UTS namespace and leave the sibling unchanged."
+  risk: normal
+  tags:
+    - container
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_ctr_005
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_ctr_005
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - uts
+  basis:
+    - OS
+  prerequisites:
+    - CTR-001
