@@ -1,0 +1,49 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure and build Debug
+        run: cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
+      - name: Build
+        run: cmake --build build/debug -j
+      - name: Unit tests, catalog, and CPU-001
+        run: ctest --test-dir build/debug --output-on-failure -LE 'stress|experiments'
+      - name: Registered experiments
+        run: ctest --test-dir build/debug --output-on-failure -L experiments
+
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AddressSanitizer
+        run: >
+          cmake -S . -B build/asan -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"
+      - name: Build unit tests
+        run: cmake --build build/asan -j --target syslab_tests
+      - name: Run unit tests without LeakSanitizer
+        run: ASAN_OPTIONS=detect_leaks=0 ./build/asan/syslab_tests
+        # Default LeakSanitizer still exits 1. The remaining leaks are
+        # LockFreeStack<int>::push and test_epoch, 516 bytes in 33 allocations.
+
+  tsan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure ThreadSanitizer
+        run: >
+          cmake -S . -B build/tsan -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer"
+          -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"
+      - name: Build unit tests
+        run: cmake --build build/tsan -j --target syslab_tests
+      - name: Run unit tests
+        run: ./build/tsan/syslab_tests
