@@ -1,0 +1,51 @@
+schema_version: 1
+experiment:
+  id: SEC-004
+  name: no-follow
+  module: security.nofollow
+  description: "O_NOFOLLOW rejects a final symlink with ELOOP."
+  risk: normal
+  tags:
+    - security
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_sec_004
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_sec_004
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - nofollow
+  basis:
+    - OS
+  prerequisites:
+    - SEC-002
