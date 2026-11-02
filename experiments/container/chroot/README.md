@@ -2,7 +2,7 @@
 
 ## 实验目的
 
-确认 `chroot` 到准备好的目录之后，`open` 打开的是该目录中的文件。
+chroot 之后 /data/token 读到 inside。/outside 打不开。
 
 ## 程序实际检查的内容
 
@@ -10,6 +10,6 @@
 
 ## 不由本实验断言的内容
 
-本实验不切换挂载点上的其他文件系统，也不读取编排系统的描述文本。
+chroot 之后 /data/token 读到 inside。/outside 打不开。
 
 反汇编、系统调用跟踪、ELF 元数据和耗时进入本次运行的观察记录。工具不存在或本次没有采样时，记录的状态是 unavailable 或 unsupported，程序不补造这些数据。

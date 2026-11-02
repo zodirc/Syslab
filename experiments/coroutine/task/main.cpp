@@ -7,8 +7,7 @@ syslab::Task sequence(syslab::CoroutineScheduler& scheduler, std::string& log, c
   co_await syslab::yield_to(scheduler);
   log += second;
 }
-// 应用：协程中的异常没有到达调用 run 的一方，或者两个任务的输出顺序与挂起点不符。
-// 原理：两个协程在挂起点交替，日志为 ACBD。任务抛出 runtime_error 时，run 重新抛出该异常。协程在调度器恢复之前不运行，也不自动并行。
+// 原理：两个协程在挂起点交替，日志为 ACBD。任务抛出 runtime_error 时，run 重新抛出该异常。
 int main() {
   std::string log;
   {
@@ -37,7 +36,7 @@ int main() {
     syslab_step("run 没有重新抛出任务中的异常。");
     return syslab_fail("exception");
   }
-  syslab_note("LANG", "a coroutine task is not a thread and does not run until the scheduler resumes it");
+  syslab_note("LANG", "the log is ACBD and run rethrew runtime_error");
     syslab_step("两个协程在挂起点交替，日志为 ACBD。run 重新抛出任务中的 runtime_error。");
   return syslab_pass();
 }

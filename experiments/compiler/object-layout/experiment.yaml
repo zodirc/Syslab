@@ -3,7 +3,7 @@ experiment:
   id: RT-001
   name: object-layout
   module: runtime.layout
-  description: "Print a standard-layout object and recognize a polymorphic type."
+  description: "Read the first member of a standard-layout object from offset 0."
   risk: normal
   tags:
     - runtime
