@@ -2,8 +2,7 @@
 #include <cstdint>
 #include <fstream>
 #include <vector>
-// 应用：进程入口不是 main，动态库没有被装入，或程序在进入用户代码之前退出。
-// 原理：程序头中的 PT_INTERP 给出动态加载器路径。内核先启动该加载器，再由加载器进入程序。没有这一项时，本节记为当前主机不能完成这项观察。
+// 原理：小端 ELF64 的程序头里存在类型为 3 的 PT_INTERP。没有这一项时，结果为不支持。
 int main() {
   std::ifstream input("/proc/self/exe", std::ios::binary);
   if (!input) {
@@ -47,8 +46,7 @@ int main() {
     syslab_step("程序头中没有 PT_INTERP，本节不能观察动态加载器。");
     return syslab_unsupported("no-pt-interp");
   }
-  syslab_note("ABI", "PT_INTERP means the kernel invokes a dynamic loader for this executable");
-  syslab_note("OBSERVED", "PLT and GOT contents are left in the disassembly and ELF observation");
-    syslab_step("程序头中存在类型为 PT_INTERP 的项。动态加载器先于 main 启动。");
+  syslab_note("ABI", "a program header of type 3 is PT_INTERP");
+    syslab_step("程序头中存在类型为 3 的 PT_INTERP。");
   return syslab_pass();
 }

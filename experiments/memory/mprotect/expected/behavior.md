@@ -8,4 +8,4 @@
 
 ## 边界
 
-信号的内核投递路径不由本实验结果命名。父进程不访问该 PROT_NONE 页。
+父进程 waitpid 读到 WTERMSIG 为 SIGSEGV。父进程不写入该页。

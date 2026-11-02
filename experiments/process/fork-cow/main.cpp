@@ -3,7 +3,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 // 应用：fork 之后，父进程或子进程看到了对方后来写入的变量。
-// 原理：子进程在 fork 之后把变量改为 2 并退出。父进程中的同一变量保持为 1。地址空间分离解释这次隔离。缺页次数不能单独证明写时复制。
+// 原理：子进程在 fork 之后把变量改为 2 并退出。父进程中的同一变量保持为 1。子进程的 ru_minflt 记入度量，不作为通过条件。
 int main() {
   int value = 1;
   const pid_t child = fork();

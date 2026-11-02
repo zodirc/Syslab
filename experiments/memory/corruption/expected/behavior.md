@@ -8,4 +8,4 @@ allocate({0}) 抛出 syslab::Error。deallocate(nullptr) 不抛出。对同一�
 
 ## 边界
 
-这些检查属于教学分配器。它们不替代 ASan，也不说明全局 new 有同样行为。
+本节使用 ArenaAllocator。0 字节的 allocate 抛出 syslab::Error。deallocate(nullptr) 不抛出。同一块的第二次 deallocate 抛出 syslab::Error。

@@ -2,8 +2,7 @@
 #include "syslab/synchronization/condition_variable.hpp"
 #include "syslab/synchronization/mutex.hpp"
 #include <thread>
-// 应用：条件变量上的等待者被唤醒后继续使用旧数据，或者通知发出时等待者尚未进入等待。
-// 原理：等待者在持锁状态下反复检查谓词 value == 7。通知方在持锁时把 value 设为 7 再通知。等待者返回时谓词已经成立。伪唤醒由谓词复查挡住。本节不证明 futex 进入了睡眠。
+// 原理：通知方持锁把 ready 写成 true 并调用 notify_one。等待者从 wait 返回后把 observed 写成 true。
 int main() {
   syslab::Mutex mutex;
   syslab::ConditionVariable condition;
@@ -24,7 +23,7 @@ int main() {
     syslab_step("谓词成立后等待者没有继续执行。");
     return syslab_fail("wake");
   }
-  syslab_note("OS", "the waiter ran after the predicate became true; the kernel wait queue is not identified");
-    syslab_step("等待线程返回时，持锁发布的 value 已经是 7。");
+  syslab_note("OS", "the waiter returned from wait and set observed after ready was stored under the mutex");
+    syslab_step("等待线程从 wait 返回后，observed 为 true。");
   return syslab_pass();
 }

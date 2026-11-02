@@ -1,7 +1,7 @@
 #include "experiments/common/check.hpp"
 extern "C" long abi_sum6(long, long, long, long, long, long);
 // 应用：C++ 调用汇编函数，或另一种语言调用本程序时，前几个整数参数或返回值错位。
-// 原理：当前 ABI 把前六个整数参数放进规定的寄存器，返回值放进返回值寄存器。x86-64 使用 rdi、rsi、rdx、rcx、r8、r9 与 rax。AArch64 使用 x0 至 x5 与 x0。本节调用汇编函数 abi_sum6，六个参数之和为 21。
+// 原理：当前 ABI 把前六个整数参数放进规定的寄存器，返回值放进返回值寄存器。x86-64 把前六个整数放入 rdi、rsi、rdx、rcx、r8、r9，返回值放入 rax。AArch64 把前六个整数放入 x0 至 x5，返回值放入 x0。abi_sum6 从这些寄存器取数并相加，返回值为 21。
 int main() {
   const long sum = abi_sum6(1, 2, 3, 4, 5, 6);
   syslab_metric("sum", sum);

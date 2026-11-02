@@ -2,7 +2,7 @@
 
 ## 实验目的
 
-安装 SIGUSR1 处理函数并确认 raise 之后处理函数执行了一次。
+sigaction 安装 SIGUSR1 的处理函数后，raise 使 delivered 变为 1。
 
 ## 程序实际检查的内容
 

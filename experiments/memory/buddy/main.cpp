@@ -3,8 +3,7 @@
 #include <cstdint>
 #include <cstring>
 #include <vector>
-// 应用：伙伴分配器上同时存活的几块缓冲互相覆盖。
-// 原理：这个实现按 2 的幂切分。八次 24 字节分配各自写入不同的字节模式，读回必须与写入一致。全部释放后，一次 128 字节分配能够成功。映射大小保持为请求的 2 的幂。
+// 原理：八块 24 字节各自写入 0x10 到 0x17，读回与写入相同。全部释放后，128 字节请求返回非空。
 int main() {
   syslab::BuddyAllocator buddy(64 * 1024);
   std::vector<void*> pointers;
@@ -31,7 +30,7 @@ int main() {
     syslab_step("释放后的下一次分配没有按预期完成。");
     return syslab_fail("reuse");
   }
-  syslab_note("OBSERVED", "buddy orders are powers of two in this allocator; the mapping size stays the requested power of two");
+  syslab_note("OBSERVED", "eight live 24-byte blocks read back 0x10 through 0x17, then a 128-byte request returned non-null");
     syslab_step("八块同时存活的 24 字节区域读回各自写入的字节。全部释放后，128 字节请求分配成功。");
   return syslab_pass();
 }
