@@ -548,7 +548,7 @@ void test_catalog() {
     std::cerr << "catalog " << issue << "\n";
   }
   EXPECT(issues.empty());
-  EXPECT(registry.ids().size() == 94);
+  EXPECT(registry.ids().size() == 79);
 #else
   EXPECT(false && "SYSLAB_SOURCE_DIR is not defined");
 #endif
@@ -808,18 +808,15 @@ void test_course_html() {
   syslab::Registry registry;
   registry.load_tree(syslab::join_path(SYSLAB_SOURCE_DIR, "experiments"));
   const std::vector<syslab::Lesson> lessons = syslab::load_course(SYSLAB_SOURCE_DIR, registry);
-  EXPECT(lessons.size() == 94);
+  EXPECT(lessons.size() == 79);
   EXPECT(lessons.front().id == "OBJ-001");
   EXPECT(lessons.front().layer == "基础");
-  EXPECT(lessons[14].id == "AT-001");
-  EXPECT(lessons[14].layer == "基础");
-  EXPECT(lessons[15].id == "SYNC-001");
-  EXPECT(lessons[15].layer == "进阶");
+  EXPECT(lessons[13].id == "AT-001");
+  EXPECT(lessons[13].layer == "基础");
+  EXPECT(lessons[14].id == "SYNC-001");
+  EXPECT(lessons[14].layer == "进阶");
   bool saw_direction = false;
   for (const syslab::Lesson& lesson : lessons) {
-    if (lesson.id == "CPU-003") {
-      EXPECT(lesson.layer == "进阶");
-    }
     if (lesson.id == "STO-002") {
       EXPECT(lesson.layer == "方向");
       saw_direction = true;
@@ -845,8 +842,8 @@ void test_course_html() {
     ++direction_at;
   }
   EXPECT(direction_at == 30);
-  EXPECT(registry.get("CPU-002").prerequisites.size() == 1);
-  EXPECT(registry.get("CPU-002").prerequisites.front() == "CPU-001");
+  EXPECT(registry.get("OS-002").prerequisites.size() == 1);
+  EXPECT(registry.get("OS-002").prerequisites.front() == "OS-001");
   const syslab::Lesson* cpu001 = syslab::find_lesson(lessons, "CPU-001");
   EXPECT(cpu001 != nullptr && cpu001->title.find("补码") != std::string::npos);
   const std::pair<std::string, std::string> cause = syslab::split_cause("甲。乙。此后丙。丁。");

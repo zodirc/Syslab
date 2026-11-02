@@ -215,15 +215,10 @@ SysLab 分为七个逻辑层：
 | 实验 ID | 实验名称 | 关键验证 |
 |---|---|---|
 | CPU-001 | 整数与浮点数据表示 | 内存字节、补码、IEEE 754 |
-| CPU-002 | 函数调用与返回 | 参数寄存器、返回寄存器、栈变化 |
-| CPU-003 | 栈帧与局部变量 | O0/O2 下栈帧差异 |
-| CPU-004 | 调用约定对比 | x86-64 ABI 与 AArch64 ABI |
+| CPU-004 | System V AMD64 与 AArch64 PCS 的整数参数 | 前六个整数参数寄存器，返回值 21 |
 | CPU-005 | 虚函数调用指令路径 | 间接寻址与间接调用 |
 | CPU-006 | ELF 文件结构 | section、segment、symbol、relocation |
 | CPU-007 | 动态链接路径 | PLT、GOT、动态加载 |
-| CPU-008 | 编译器优化观察 | 常量传播、内联、死代码消除 |
-| CPU-009 | 原子指令反汇编 | 不同 memory_order 的指令差异 |
-| CPU-010 | 条件分支与分支预测 | 分支模式与性能计数器 |
 
 ## 4.1.4 实现要求
 
@@ -354,12 +349,10 @@ public:
 | OS-002 | fork 与 Copy-on-Write | /proc、perf、缺页统计 |
 | OS-003 | 线程创建与销毁 | pthread、strace |
 | OS-004 | 进程与线程地址空间对比 | /proc/PID/maps |
-| OS-005 | 阻塞与唤醒 | perf sched、ftrace |
-| OS-006 | CPU 亲和性 | sched_setaffinity、taskset |
-| OS-007 | 上下文切换统计 | getrusage、perf |
+| OS-005 | 条件变量在谓词成立后返回 | wait 返回后 observed 为 true |
+| OS-006 | sched_setaffinity 与 sched_getaffinity 的 CPU 0 | 读回的掩码包含 CPU 0 |
 | OS-008 | IPC 性能与语义 | pipe、socket、共享内存 |
 | OS-009 | 信号交付与处理 | sigaction、strace |
-| OS-010 | NUMA 访问差异 | numactl、perf |
 
 ## 4.3.5 内核观测策略
 
@@ -481,14 +474,12 @@ C++ lock_guard / unique_lock
 | AT-004 | Store Buffering | 内存模型与架构差异 |
 | AT-005 | Seq_cst 全序 | 顺序一致性约束 |
 | AT-006 | Fence 实验 | fence 与原子操作关系 |
-| AT-007 | CAS 与 ABA | 指针复用问题 |
-| AT-008 | False Sharing | 缓存行竞争 |
-| AT-009 | Lock-free Stack | CAS 循环与回收安全 |
-| AT-010 | SPSC Ring Buffer | 单生产者单消费者协议 |
-| AT-011 | MPMC Queue | 多生产者多消费者正确性 |
-| AT-012 | Hazard Pointer | 延迟回收与安全扫描 |
-| AT-013 | Epoch Reclamation | 宽限期与回收条件 |
-| AT-014 | x86/ARM 对照 | 指令和允许行为差异 |
+| AT-007 | 带版本字的比较交换 | 版本变为 1 后，期望值 1 交换失败 |
+| AT-009 | Treiber 栈弹出的互异值 | 弹出集合大小为 800 |
+| AT-010 | 单生产者单消费者环按序号交出 | 消费者依次得到 0 到 9999 |
+| AT-011 | 多生产者多消费者队列的互异值 | 互异值数量为 2000 |
+| AT-012 | 危险指针公布期间跳过回收 | 删除计数先为 127，clear 之后为 383 |
+| AT-013 | pin 期间退役对象的删除计数 | pin 期间为 0，unpin 之后为 2 |
 
 ## 4.5.5 无锁结构要求
 

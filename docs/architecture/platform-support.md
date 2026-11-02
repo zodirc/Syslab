@@ -8,9 +8,9 @@ CPU-004 的 `abi_sum.S` 按架构选择寄存器：x86-64 使用 System V 的前
 
 `libatomic.so` 在本开发主机上不可用。无锁结构的 `is_lock_free()` 使用 `__atomic_always_lock_free`，不调用会引入 `libatomic` 的 `std::atomic::is_lock_free`。指针宽度或 `size_t` 不是始终无锁时，相关实验返回 unsupported。
 
-环境快照中的编译器版本字段固定为 unavailable，原因是版本由工具链探测和 `build.json` 分别记录，避免两处互相覆盖成空字符串。同一次快照还记录 `cpufreq_governor`、`/proc/loadavg` 的前三个字段，以及运行进程继承的 CPU 亲和性。本机 governor 文件不存在，状态为 unavailable，原因是 `scaling_governor is not exposed`。负载和亲和性在 `CPU-002` 的 `environment.json` 中为 ok。
+环境快照中的编译器版本字段固定为 unavailable，原因是版本由工具链探测和 `build.json` 分别记录，避免两处互相覆盖成空字符串。同一次快照还记录 `cpufreq_governor`、`/proc/loadavg` 的前三个字段，以及运行进程继承的 CPU 亲和性。本机 governor 文件不存在，状态为 unavailable，原因是 `scaling_governor is not exposed`。
 
-`perf` 不在本机 `PATH` 中。`probe_perf_events` 因此把 `perf_events` 标为 unavailable，不试跑计数器，也不写 0。`OS-007` 的观测 `complete` 为 false，限制说明是 `which did not resolve the command`。
+`perf` 不在本机 `PATH` 中。`probe_perf_events` 因此把 `perf_events` 标为 unavailable，不试跑计数器，也不写 0。
 
 本机直接调用 `unshare(CLONE_NEWPID)` 返回 `EPERM`。`CTR-001` 先 `unshare(CLONE_NEWUSER)`，把当前用户写入 `uid_map` 和 `gid_map` 为命名空间内的 0，再建立 PID 命名空间。2026-11-02 的运行记录在 `artifacts/runs/batch-20261102T030808-46d436b7`，结果 PASSED，第一个子进程的 pid 是 1。同一映射之后，`CTR-002` 在私有挂载命名空间里挂载 tmpfs，记录 `artifacts/runs/batch-20261102T030815-cb1baf90`；`CTR-003` 在该命名空间中 `chroot`，记录 `artifacts/runs/batch-20261102T030823-e44f3fa4`。两次结果都是 PASSED。`CTR-004` 把 `RLIMIT_AS` 软限制设为当时的 `VmSize` 加 64MiB，一页映射可以写入，80MiB 映射返回 `MAP_FAILED`，记录 `artifacts/runs/batch-20261102T030829-96acab04`，结果 PASSED。运行器的 `resource_limit` 终止原因来自 `SIGXCPU`。
 

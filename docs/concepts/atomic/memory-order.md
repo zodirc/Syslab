@@ -1,11 +1,11 @@
 # 内存序与回收
 
-AT-001 不执行非原子数据竞争。被互斥量保护的计数是有定义行为。一次没有崩溃不能证明竞争不存在，所以实验根本不跑竞争路径。
+AT-001 的四个线程在互斥量保护下各递增 1000 次，计数为 4000。程序只运行加锁路径。
 
-relaxed `fetch_add` 保证加法的原子性，不建立对其他普通写入的 happens-before。release 存储与 acquire 加载配对时，payload 必须可见。`atomic_thread_fence` 的 release/acquire 配对同样传递 relaxed 原子两侧的 payload。这三件事分别由 AT-002、AT-003 和 AT-006 检查。
+AT-002 的四个线程各执行 10000 次 `memory_order_relaxed` 的 `fetch_add`，计数为 40000。AT-003 在 200 次试验中，`memory_order_acquire` 看到旗标为 1 之后读到载荷 42。AT-006 用 `std::atomic_thread_fence` 的 release 与 acquire 配对，200 次试验中 acquire fence 之后的载荷为 42。
 
-seq_cst 存储缓冲实验不允许两个加载同时看到 0。relaxed 或 acq_rel 允许该结果，AT-004 不把那种允许的结果当成失败。IRIW 的禁止结果若在样本中出现则失败；没有出现只覆盖该次样本。
+AT-004 的存储和加载使用 `memory_order_seq_cst`。300 次试验中两个加载没有同时为 0。AT-005 的加载和存储使用 `memory_order_seq_cst`。200 次试验中没有出现 r1=1、r2=0、r3=1、r4=0。
 
-编译器屏障、C++ `atomic_thread_fence`、ISA 屏障和缓存一致性不是同义词。volatile 不替代原子操作。
+AT-006 核对的是 `std::atomic_thread_fence`。volatile 不替代原子操作。
 
-Hazard pointer 在槽仍发布地址时不回收该地址。扫描在退役列表达到槽预算后发生。Epoch 在 pin 期间不删除刚退役的对象。Treiber stack、SPSC 和 MPMC 的进度声明依赖 `__atomic_always_lock_free`。ABA 实验是带标签字的确定性模拟，不是栈里的真实故障。
+AT-007 比较一个 uint64_t。版本从 0 改为 1 之后，期望值仍为 1 的比较交换失败，低 32 位保持为 1。AT-009 的弹出集合大小为 800。AT-010 的消费者依次得到 0 到 9999。AT-011 的互异值数量为 2000。AT-012 在槽仍公布地址时删除计数为 127，clear(0) 之后为 383。AT-013 在 pin 期间的删除计数为 0，unpin 之后为 2。

@@ -1,1 +1,1 @@
-OS-010 UNSUPPORTED
+# 未写入本文件的实验，集成测试预期为 PASSED。
