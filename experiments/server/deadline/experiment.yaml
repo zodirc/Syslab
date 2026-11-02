@@ -1,0 +1,51 @@
+schema_version: 1
+experiment:
+  id: SRV-004
+  name: read-deadline
+  module: server.deadline
+  description: "Close a connection that does not complete a frame before the poll deadline."
+  risk: normal
+  tags:
+    - server
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_srv_004
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_srv_004
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - deadline
+  basis:
+    - OS
+  prerequisites:
+    - SRV-002

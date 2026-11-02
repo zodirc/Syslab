@@ -1,0 +1,51 @@
+schema_version: 1
+experiment:
+  id: SRV-005
+  name: pipelined-frames
+  module: server.pipeline
+  description: "Split one byte stream into two ordered frames and keep a partial trailer."
+  risk: normal
+  tags:
+    - server
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_srv_005
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_srv_005
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - frame
+  basis:
+    - OS
+  prerequisites:
+    - SRV-002
