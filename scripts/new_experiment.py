@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Create a minimal experiment directory that the runner can build."""
+"""Create a minimal experiment directory that the runner can build.
+
+正文规则在 .cursor/skills/experiment-lesson/SKILL.md。
+"""
 
 import re
 import sys
@@ -85,7 +88,7 @@ knowledge:
         """#include "experiments/common/check.hpp"
 
 int main() {
-  // 在这里写可以判定对错的检查。不要把猜测写成通过。
+  // 在这里写可以判定对错的检查。通过条件必须拒绝错误结果。任何读数都通过的检查不要留在课程里。
   syslab_note("OBSERVED", "replace this note with what the program actually checked");
   return syslab_pass();
 }
@@ -100,11 +103,11 @@ int main() {
 
 ## 程序实际检查的内容
 
-把 main.cpp 里的判定写在这里。
+把 main.cpp 里的判定写在这里。判定必须能区分通过和失败。
 
 ## 不由本实验断言的内容
 
-写明哪些现象只是观察，不能当作通过条件。
+写这一节的原理没有覆盖的范围。用陈述句。不要用两边都否定的句子充当这一节。
 """.format(id=identifier, name=name, description=description),
         encoding="utf-8")
     (directory / "expected" / "behavior.md").write_text(
