@@ -3,8 +3,7 @@
 #include <set>
 #include <thread>
 #include <vector>
-// 应用：无锁栈在并发压入之后丢失元素或弹出重复值。
-// 原理：四个线程共压入 800 个互异值。弹出值的集合大小为 800。指针原子不是始终无锁时，结果为不支持。该栈不是 wait-free。
+// 原理：四个线程各 push 200 个互异值。弹出值的集合大小为 800。栈顶指针的原子不是始终无锁时，结果为不支持。
 int main() {
   if (!syslab::LockFreeStack<int>{}.is_lock_free()) {
     syslab_step("指针原子不是始终无锁，本节停止。");
@@ -25,7 +24,7 @@ int main() {
     syslab_step("互异值的数量与发送或压入的数量不一致。");
     return syslab_fail("values");
   }
-  syslab_note("OBSERVED", "pop retires nodes through hazard pointers; progress is lock-free only while the pointer atomic is always lock-free");
+  syslab_note("OBSERVED", "the pop set contains 800 distinct values");
     syslab_step("弹出值的集合大小为 800，与压入的互异值数量相同。");
   return syslab_pass();
 }

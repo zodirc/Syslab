@@ -3,7 +3,7 @@
 #include <atomic>
 #include <thread>
 // 应用：两个读者对两个写入的观察顺序互相交叉，业务上认为全局顺序被破坏。
-// 原理：seq_cst 禁止 r1 为 1、r2 为 0、r3 为 1、r4 为 0 这一组结果。200 次没有出现，只说明这批样本没有违反约束。
+// 原理：四个线程的加载和存储使用 memory_order_seq_cst。200 次试验中没有出现 r1=1、r2=0、r3=1、r4=0。
 int main() {
   for (int trial = 0; trial < 200; ++trial) {
     std::atomic<int> x{0};
@@ -28,8 +28,7 @@ int main() {
     return syslab_fail("iriw");
   }
   }
-  syslab_note("LANG", "that IRIW outcome is forbidden for seq_cst");
-  syslab_note("OBSERVED", "absence in 200 trials is a sample, not a proof that every execution is ordered");
+  syslab_note("LANG", "200 seq_cst trials did not observe r1=1 r2=0 r3=1 r4=0");
     syslab_step("200 次样本中没有出现被 seq_cst 禁止的那组交叉结果。");
   return syslab_pass();
 }

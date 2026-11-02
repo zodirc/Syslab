@@ -6,7 +6,7 @@
 #include <vector>
 
 // 应用：MCS 锁在解锁时崩溃，或临界区计数偏小。
-// 原理：同一节点在 unlock 返回后可以再次加锁。四个线程用 McsGuard 各递增 1000 次，计数为 4000。本节不构造 unlock 返回前销毁节点的用例。
+// 原理：同一节点在 unlock 返回后再次加锁。四个线程用 McsGuard 各递增 1000 次，计数为 4000。
 
 int main() {
   syslab::McsLock lock;

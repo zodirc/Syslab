@@ -3,7 +3,7 @@
 #include "syslab/synchronization/mutex.hpp"
 #include <thread>
 // 应用：等到了互斥量，读到的仍是通知之前的旧值。
-// 原理：谓词 value == 7 在持锁期间发布，等待者在持锁期间复查。等待线程返回时 value 为 7。允许伪唤醒。本节不证明 futex 一定睡眠。
+// 原理：谓词 value == 7 在持锁期间发布。等待线程返回时 value 为 7。
 int main() {
   syslab::Mutex mutex;
   syslab::ConditionVariable condition;

@@ -3,7 +3,7 @@
 #include <atomic>
 #include <thread>
 // 应用：两个线程各自先写自己的变量再读对方的变量，两边都读到 0。
-// 原理：seq_cst 不允许这次存储缓冲结果中两个加载同时为 0。300 次试验中不出现该结果。relaxed 或 acq_rel 允许该结果，本节不把那种允许的结果当成失败。
+// 原理：两个线程的存储和加载使用 memory_order_seq_cst。300 次试验中两个加载没有同时为 0。
 int main() {
   for (int trial = 0; trial < 300; ++trial) {
     std::atomic<int> x{0};
@@ -28,8 +28,7 @@ int main() {
     return syslab_fail("both-zero");
   }
   }
-  syslab_note("LANG", "seq_cst forbids the both-zero store-buffering outcome");
-  syslab_note("LANG", "the same shape with relaxed or acq_rel is allowed to observe both zero and is not failed here");
+  syslab_note("LANG", "300 seq_cst trials did not observe both loads as 0");
     syslab_step("300 次 seq_cst 试验中，没有出现两个加载同时为 0。");
   return syslab_pass();
 }

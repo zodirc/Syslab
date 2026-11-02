@@ -8,4 +8,4 @@
 
 ## 边界
 
-futex mutex exclusion; slow-path waits are counted separately by SYNC-010。销毁锁时不能仍有线程停在锁内。
+销毁这把互斥量时，锁处于未锁，并且没有线程停在 lock 内。

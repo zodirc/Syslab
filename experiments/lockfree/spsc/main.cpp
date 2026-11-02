@@ -1,8 +1,7 @@
 #include "experiments/common/check.hpp"
 #include "syslab/atomic/spsc_ring.hpp"
 #include <thread>
-// 应用：单生产者单消费者队列交出的整数乱序或出现缺口。
-// 原理：容量为 2 的幂。一个生产者拥有尾，一个消费者拥有头。消费者依次得到 0 到 9999。第二个生产者或第二个消费者不属于这个算法。
+// 原理：SpscRing<int, 1024> 的容量为 1024。一个生产者写入 0 到 9999，消费者依次得到这些值。
 int main() {
   syslab::SpscRing<int, 1024> ring;
   if (!ring.is_lock_free()) {

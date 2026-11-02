@@ -21,8 +21,7 @@ int main() {
     return syslab_fail("fence");
   }
   }
-  syslab_note("LANG", "the release fence synchronizes with the acquire fence when the relaxed flag is the synchronizing store/load");
-  syslab_note("ISA", "a compiler fence or an ISA barrier is not the same object as atomic_thread_fence");
+  syslab_note("LANG", "atomic_thread_fence release paired with acquire and the payload was 42");
     syslab_step("200 次试验中，acquire fence 之后读到的载荷都是 42。");
   return syslab_pass();
 }

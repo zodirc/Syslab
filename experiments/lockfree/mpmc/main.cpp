@@ -5,8 +5,7 @@
 #include <set>
 #include <thread>
 #include <vector>
-// 应用：多个生产者和多个消费者结束后，元素丢失或重复。
-// 原理：四个生产者各发送 500 个互异值。消费者集合大小为 2000。队列有界。元素类型必须可平凡复制。索引原子不是始终无锁时，结果为不支持。
+// 原理：四个生产者各发送 500 个互异值，四个消费者收到的互异值数量为 2000。容量为 1024。
 int main() {
   syslab::MpmcQueue<int, 1024> queue;
   if (!queue.is_lock_free()) {
