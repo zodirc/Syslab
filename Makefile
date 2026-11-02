@@ -7,7 +7,7 @@ BUILD ?= build/debug
 JOBS  ?= $(shell nproc 2>/dev/null || echo 4)
 SYSLAB := $(BUILD)/syslab
 
-.PHONY: all demo test list run report show env help new learn web
+.PHONY: all demo test list run report show env help new learn web validate asan tsan format-check
 
 all:
 	@cxx=$$(sh scripts/find_cxx.sh); \
@@ -24,7 +24,10 @@ web: all
 	$(SYSLAB) web $(PORT)
 
 test: all
-	ctest --test-dir $(BUILD) --output-on-failure
+	ctest --test-dir $(BUILD) --output-on-failure -LE 'stress|experiments'
+
+validate: all
+	$(SYSLAB) validate --all
 
 list: all
 	$(SYSLAB) list
@@ -48,6 +51,26 @@ new:
 	@test -n "$(ID)" || { echo "用法: make new ID=LAB-001 NAME=my-check MODULE=lab.custom DESC='说明这句话'"; exit 1; }
 	python3 scripts/new_experiment.py "$(ID)" "$(NAME)" "$(MODULE)" "$(DESC)"
 
+asan:
+	@cxx=$$(sh scripts/find_cxx.sh); \
+	echo "使用编译器 $$cxx"; \
+	cmake -S . -B build/asan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER="$$cxx" \
+	  -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer" \
+	  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined"; \
+	cmake --build build/asan -j$(JOBS)
+
+format-check:
+	@files=$$(find src include -name '*.hpp' -o -name '*.cpp' -o -name '*.h'); \
+	clang-format --dry-run -Werror $$files
+
+tsan:
+	@cxx=$$(sh scripts/find_cxx.sh); \
+	echo "使用编译器 $$cxx"; \
+	cmake -S . -B build/tsan -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER="$$cxx" \
+	  -DCMAKE_CXX_FLAGS="-fsanitize=thread -fno-omit-frame-pointer" \
+	  -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=thread"; \
+	cmake --build build/tsan -j$(JOBS)
+
 help:
 	@echo "make web             在 http://127.0.0.1:9527/ 打开页面"
 	@echo "make learn           看课程表，并写出课程页"
@@ -60,4 +83,8 @@ help:
 	@echo "make show ID=AT-003"
 	@echo "make env          查看本机工具能力"
 	@echo "make test         运行 ctest"
+	@echo "make format-check 检查 src 与 include 是否符合 .clang-format"
+	@echo "make asan         编译 AddressSanitizer 与 UndefinedBehaviorSanitizer"
+	@echo "make tsan         编译 ThreadSanitizer"
+	@echo "make validate     检查实验目录、索引和课程标识"
 	@echo "make new ID=LAB-001 NAME=my-check MODULE=lab.custom DESC='一句话说明'"

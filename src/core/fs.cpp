@@ -4,6 +4,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fcntl.h>
 #include <fstream>
 #include <sstream>
 #include <sys/stat.h>
@@ -158,6 +159,70 @@ std::string filename_of(const std::string& path) {
     return path;
   }
   return path.substr(slash + 1);
+}
+
+std::vector<std::string> list_directory(const std::string& path) {
+  DIR* handle = ::opendir(path.c_str());
+  if (handle == nullptr) {
+    throw_errno("opendir", path);
+  }
+  std::vector<std::string> names;
+  while (const dirent* entry = ::readdir(handle)) {
+    const std::string name = entry->d_name;
+    if (name != "." && name != "..") {
+      names.push_back(name);
+    }
+  }
+  ::closedir(handle);
+  return names;
+}
+
+void remove_tree(const std::string& path) {
+  if (!path_exists(path)) {
+    return;
+  }
+  if (is_directory(path)) {
+    for (const std::string& name : list_directory(path)) {
+      remove_tree(join_path(path, name));
+    }
+    if (::rmdir(path.c_str()) != 0) {
+      throw_errno("rmdir", path);
+    }
+    return;
+  }
+  if (::unlink(path.c_str()) != 0) {
+    throw_errno("unlink", path);
+  }
+}
+
+void append_file(const std::string& path, const std::string& contents) {
+  const int descriptor = ::open(path.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+  if (descriptor < 0) {
+    throw_errno("open", path);
+  }
+  std::size_t written = 0;
+  while (written < contents.size()) {
+    const ssize_t count = ::write(descriptor, contents.data() + written, contents.size() - written);
+    if (count < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      ::close(descriptor);
+      throw_errno("write", path);
+    }
+    if (count == 0) {
+      ::close(descriptor);
+      throw Error(Error::Code::Io, "short append to " + path);
+    }
+    written += static_cast<std::size_t>(count);
+    if (written < contents.size()) {
+      ::close(descriptor);
+      throw Error(Error::Code::Io, "short append to " + path);
+    }
+  }
+  if (::close(descriptor) != 0) {
+    throw_errno("close", path);
+  }
 }
 
 }  // namespace syslab

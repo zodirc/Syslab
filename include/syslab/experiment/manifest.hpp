@@ -67,6 +67,13 @@ struct Manifest {
   int repetitions = 1;
   LimitSpec limits;
   std::vector<std::string> observe;
+  /**
+   * perf stat events used when observe contains performance_counter.
+   * Tokens match [A-Za-z0-9_.:/-]+. The list is required in that case.
+   * observe 含 performance_counter 时交给 perf stat 的事件。
+   * 记号匹配 [A-Za-z0-9_.:/-]+。此时该列表必填。
+   */
+  std::vector<std::string> perf_events;
   std::vector<CheckSpec> checks;
   std::vector<std::string> preserve;
   std::vector<std::string> prerequisites;

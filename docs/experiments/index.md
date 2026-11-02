@@ -68,5 +68,35 @@
 | CO-001 | `experiments/coroutine/fiber` |
 | CO-002 | `experiments/coroutine/task` |
 | CO-003 | `experiments/coroutine/work-stealing` |
+| STO-002 | `experiments/storage/page` |
+| STO-003 | `experiments/storage/index` |
+| STO-004 | `experiments/storage/lock-order` |
+| STO-005 | `experiments/storage/wal` |
+| SRV-002 | `experiments/server/frame` |
+| SRV-003 | `experiments/server/connections` |
+| SRV-004 | `experiments/server/deadline` |
+| CTR-001 | `experiments/container/pid-namespace` |
+| CTR-002 | `experiments/container/mount-namespace` |
+| CTR-003 | `experiments/container/chroot` |
+| CTR-004 | `experiments/container/address-limit` |
+| STO-006 | `experiments/storage/checksum` |
+| STO-007 | `experiments/storage/checkpoint` |
+| SRV-005 | `experiments/server/pipeline` |
+| SRV-006 | `experiments/server/queue` |
+| CTR-005 | `experiments/container/uts-namespace` |
+| CTR-006 | `experiments/container/net-namespace` |
+| SEC-001 | `experiments/security/mode` |
+| SEC-002 | `experiments/security/symlink` |
+| AV-001 | `experiments/media/stereo` |
+| AV-002 | `experiments/media/frame` |
+| AG-001 | `experiments/agent/tool` |
+| AG-002 | `experiments/agent/context` |
+| AG-003 | `experiments/agent/steps` |
+| SEC-003 | `experiments/security/directory` |
+| SEC-004 | `experiments/security/nofollow` |
+| AV-003 | `experiments/media/stride` |
+| AV-004 | `experiments/media/planar` |
+| AG-004 | `experiments/agent/argument` |
+| AG-005 | `experiments/agent/idempotent` |
 
 设计正文中的实验表覆盖 CPU、OS 和 AT。内存、同步、缓存和运行时实验使用同一 manifest 规则，对应这些模块要求实现并被观察的机制。

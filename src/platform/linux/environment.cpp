@@ -3,11 +3,16 @@
 #include "syslab/core/fs.hpp"
 #include "syslab/core/time.hpp"
 
+#include <sched.h>
 #include <sys/utsname.h>
 #include <unistd.h>
 
+#include <cctype>
+#include <cerrno>
+#include <cstring>
 #include <fstream>
 #include <sstream>
+#include <vector>
 
 namespace syslab {
 namespace {
@@ -64,6 +69,103 @@ std::string read_topology() {
   std::ostringstream out;
   out << "configured=" << configured << " online=" << online;
   return out.str();
+}
+
+std::string trim_line(std::string text) {
+  while (!text.empty() && (text.back() == '\n' || text.back() == '\r' || text.back() == ' ')) {
+    text.pop_back();
+  }
+  return text;
+}
+
+bool cpu_index_name(const std::string& name) {
+  if (name.size() < 4 || name.compare(0, 3, "cpu") != 0) {
+    return false;
+  }
+  for (std::size_t index = 3; index < name.size(); ++index) {
+    if (!std::isdigit(static_cast<unsigned char>(name[index]))) {
+      return false;
+    }
+  }
+  return true;
+}
+
+SampledField read_cpufreq_governor() {
+  const std::string root = "/sys/devices/system/cpu";
+  if (!is_directory(root)) {
+    return unavailable_field(root + " is not a directory");
+  }
+  std::vector<std::string> parts;
+  std::string shared;
+  bool same = true;
+  for (const std::string& name : list_directory(root)) {
+    if (!cpu_index_name(name)) {
+      continue;
+    }
+    const std::string path = join_path(join_path(join_path(root, name), "cpufreq"), "scaling_governor");
+    if (!path_exists(path)) {
+      continue;
+    }
+    const std::string value = trim_line(read_file(path));
+    if (value.empty()) {
+      continue;
+    }
+    if (shared.empty()) {
+      shared = value;
+    } else if (shared != value) {
+      same = false;
+    }
+    parts.push_back(name + "=" + value);
+  }
+  if (parts.empty()) {
+    return unavailable_field("scaling_governor is not exposed");
+  }
+  if (same) {
+    return ok_field(shared);
+  }
+  std::string listed;
+  for (const std::string& part : parts) {
+    if (!listed.empty()) {
+      listed += ",";
+    }
+    listed += part;
+  }
+  return ok_field(listed);
+}
+
+SampledField read_load_average() {
+  if (!path_exists("/proc/loadavg")) {
+    return unavailable_field("/proc/loadavg is not readable");
+  }
+  std::istringstream input(read_file("/proc/loadavg"));
+  std::string first;
+  std::string second;
+  std::string third;
+  if (!(input >> first >> second >> third)) {
+    return failed_field("/proc/loadavg does not contain three fields");
+  }
+  return ok_field(first + " " + second + " " + third);
+}
+
+SampledField read_cpu_affinity() {
+  cpu_set_t set;
+  CPU_ZERO(&set);
+  if (sched_getaffinity(0, sizeof(set), &set) != 0) {
+    return failed_field(std::string("sched_getaffinity failed: ") + std::strerror(errno));
+  }
+  std::string cpus;
+  for (int cpu = 0; cpu < CPU_SETSIZE; ++cpu) {
+    if (CPU_ISSET(cpu, &set)) {
+      if (!cpus.empty()) {
+        cpus += ",";
+      }
+      cpus += std::to_string(cpu);
+    }
+  }
+  if (cpus.empty()) {
+    return ok_field("none");
+  }
+  return ok_field(cpus);
 }
 
 Json field_json(const SampledField& field) {
@@ -139,6 +241,9 @@ EnvironmentSnapshot capture_environment(const std::string& compiler_path) {
 #else
   snapshot.libc_version = unavailable_field("glibc version macros are absent");
 #endif
+  snapshot.cpufreq_governor = read_cpufreq_governor();
+  snapshot.load_average = read_load_average();
+  snapshot.cpu_affinity = read_cpu_affinity();
   return snapshot;
 }
 
@@ -155,6 +260,9 @@ Json environment_to_json(const EnvironmentSnapshot& snapshot) {
   json.set("libc_version", field_json(snapshot.libc_version));
   json.set("page_size", field_json(snapshot.page_size));
   json.set("cpu_topology", field_json(snapshot.cpu_topology));
+  json.set("cpufreq_governor", field_json(snapshot.cpufreq_governor));
+  json.set("load_average", field_json(snapshot.load_average));
+  json.set("cpu_affinity", field_json(snapshot.cpu_affinity));
   return json;
 }
 

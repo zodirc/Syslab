@@ -49,6 +49,18 @@ struct CommandResult {
   std::string stderr_text;
   std::uint64_t duration_ns = 0;
   std::string spawn_error;
+  /**
+   * Set when the parent cannot open stdout_path. The in-memory stdout_text
+   * can still hold the pipe capture.
+   * 父进程无法打开 stdout_path 时填写。内存中的 stdout_text 仍可以保留管道捕获。
+   */
+  std::string stdout_capture_error;
+  /**
+   * Set when the parent cannot open stderr_path. The in-memory stderr_text
+   * can still hold the pipe capture.
+   * 父进程无法打开 stderr_path 时填写。内存中的 stderr_text 仍可以保留管道捕获。
+   */
+  std::string stderr_capture_error;
 };
 
 /**

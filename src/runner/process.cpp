@@ -82,6 +82,20 @@ void set_nonblocking(int fd) {
   }
 }
 
+// Closes inherited descriptors before exec. pipe2(O_CLOEXEC) covers the two
+// pipes at exec; this loop also drops descriptors the parent left open.
+// Kernel 4.18 has no close_range, so the upper bound is sysconf(_SC_OPEN_MAX).
+// On this host that value is 262144 and the loop costs about 145 ms.
+void close_inherited_descriptors() {
+  long open_max = ::sysconf(_SC_OPEN_MAX);
+  if (open_max < 4) {
+    open_max = 256;
+  }
+  for (int fd = 3; fd < open_max; ++fd) {
+    close(fd);
+  }
+}
+
 }  // namespace
 
 void request_interrupt() { g_interrupt.store(1, std::memory_order_release); }
@@ -127,7 +141,7 @@ CommandResult run_command(const CommandRequest& request) {
   Pipe error;
   int output_fds[2];
   int error_fds[2];
-  if (pipe(output_fds) != 0 || pipe(error_fds) != 0) {
+  if (pipe2(output_fds, O_CLOEXEC) != 0 || pipe2(error_fds, O_CLOEXEC) != 0) {
     result.spawn_error = std::string("pipe failed: ") + std::strerror(errno);
     result.termination = "spawn_error";
     return result;
@@ -170,9 +184,7 @@ CommandResult run_command(const CommandRequest& request) {
     if (dup2(output.write_fd, STDOUT_FILENO) < 0 || dup2(error.write_fd, STDERR_FILENO) < 0) {
       _exit(126);
     }
-    for (int fd = 3; fd < 256; ++fd) {
-      close(fd);
-    }
+    close_inherited_descriptors();
     if (!request.work_directory.empty() && chdir(request.work_directory.c_str()) != 0) {
       _exit(126);
     }
@@ -208,9 +220,15 @@ CommandResult run_command(const CommandRequest& request) {
   int stderr_file = -1;
   if (!request.stdout_path.empty()) {
     stdout_file = open(request.stdout_path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    if (stdout_file < 0) {
+      result.stdout_capture_error = std::string("cannot open stdout capture: ") + std::strerror(errno);
+    }
   }
   if (!request.stderr_path.empty()) {
     stderr_file = open(request.stderr_path.c_str(), O_CREAT | O_TRUNC | O_WRONLY, 0644);
+    if (stderr_file < 0) {
+      result.stderr_capture_error = std::string("cannot open stderr capture: ") + std::strerror(errno);
+    }
   }
 
   std::uint64_t produced = 0;
@@ -218,6 +236,7 @@ CommandResult run_command(const CommandRequest& request) {
   bool stderr_open = true;
   bool killed = false;
   bool reaped = false;
+  bool abandoned = false;
   int kill_stage = 0;
   int reaped_status = 0;
   std::uint64_t kill_at = 0;
@@ -289,6 +308,38 @@ CommandResult run_command(const CommandRequest& request) {
     if (killed && kill_stage == 1 && steady_nanoseconds() - kill_at > 200000000ull) {
       kill(-pid, SIGKILL);
       kill_stage = 2;
+      kill_at = steady_nanoseconds();
+    }
+    if (killed && kill_stage == 2 && steady_nanoseconds() - kill_at > 200000000ull) {
+      if (output.read_fd >= 0) {
+        close(output.read_fd);
+        output.read_fd = -1;
+      }
+      if (error.read_fd >= 0) {
+        close(error.read_fd);
+        error.read_fd = -1;
+      }
+      stdout_open = false;
+      stderr_open = false;
+      abandoned = true;
+      result.duration_ns = steady_nanoseconds() - started;
+      if (!reaped) {
+        const pid_t waited = waitpid(pid, &reaped_status, WNOHANG);
+        if (waited == pid) {
+          reaped = true;
+        }
+      }
+      if (!reaped) {
+        if (result.output_limited) {
+          result.termination = "output_limit";
+        } else if (result.interrupted) {
+          result.termination = "interrupted";
+        } else {
+          result.timed_out = true;
+          result.termination = "timed_out";
+        }
+      }
+      break;
     }
     if (!reaped) {
       const pid_t waited = waitpid(pid, &reaped_status, WNOHANG);
@@ -302,7 +353,7 @@ CommandResult run_command(const CommandRequest& request) {
     }
   }
 
-  if (!reaped) {
+  if (!reaped && !abandoned) {
     if (waitpid(pid, &reaped_status, 0) == pid) {
       reaped = true;
       result.duration_ns = steady_nanoseconds() - started;

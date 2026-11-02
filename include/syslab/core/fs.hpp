@@ -106,4 +106,52 @@ std::string parent_path(const std::string& path);
  */
 std::string filename_of(const std::string& path);
 
+/**
+ * @brief Lists the names inside a directory.
+ * 列出目录中的名字。
+ *
+ * The result omits "." and "..". It does not recurse.
+ * 结果不含 "." 和 ".."，也不递归。
+ *
+ * @param path Directory path.
+ * 目录路径。
+ * @return Entry names in directory order.
+ * 按目录顺序排列的条目名。
+ * @throws Error Io when the directory cannot be read.
+ * 目录无法读取时抛出 Error Io。
+ */
+std::vector<std::string> list_directory(const std::string& path);
+
+/**
+ * @brief Deletes a file or a directory tree.
+ * 删除一个文件或一棵目录树。
+ *
+ * A missing path is not an error. Directory contents are removed before the
+ * directory itself.
+ * 路径不存在不是错误。先删除目录内容，再删除目录本身。
+ *
+ * @param path File or directory to remove.
+ * 要删除的文件或目录。
+ * @throws Error Io when an entry cannot be removed.
+ * 某个条目无法删除时抛出 Error Io。
+ */
+void remove_tree(const std::string& path);
+
+/**
+ * @brief Appends bytes to a file with one O_APPEND write.
+ * 用一次 O_APPEND 写把字节追加到文件。
+ *
+ * The file is created when it does not exist. The caller should keep one
+ * record inside a single write so concurrent appends do not tear that record.
+ * 文件不存在时会创建。调用方应把一条记录放进同一次写，避免并发追加把该记录写裂。
+ *
+ * @param path Destination path. Parent directories must already exist.
+ * 目标路径。父目录必须已经存在。
+ * @param contents Bytes to append.
+ * 要追加的字节。
+ * @throws Error Io when the file cannot be opened or the write is short.
+ * 无法打开文件或写入不完整时抛出 Error Io。
+ */
+void append_file(const std::string& path, const std::string& contents);
+
 }  // namespace syslab

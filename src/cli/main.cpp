@@ -2,6 +2,7 @@
 #include "syslab/core/error.hpp"
 #include "syslab/core/fs.hpp"
 #include "syslab/core/json.hpp"
+#include "syslab/experiment/catalog.hpp"
 #include "syslab/experiment/registry.hpp"
 #include "syslab/experiment/session.hpp"
 #include "syslab/observation/elf.hpp"
@@ -34,6 +35,9 @@ struct Options {
   int repeat = -1;
   bool capabilities = false;
   bool latest = false;
+  bool all = false;
+  bool use_cache = true;
+  int keep = -1;
 };
 
 std::string executable_directory() {
@@ -79,12 +83,14 @@ void print_usage() {
       << "      列出实验。text 格式是：编号、名称、模块、风险。\n"
       << "  syslab show 编号\n"
       << "      查看一份清单的摘要。\n"
+      << "  syslab validate --all\n"
+      << "      检查实验目录、索引和课程标识是否一致。\n"
       << "  syslab validate 编号\n"
       << "      只检查清单和本机能力，不编译。\n"
-      << "  syslab build 编号 [--variant debug|optimized]\n"
-      << "      编译一个变体。默认用清单里的第一个变体。\n"
-      << "  syslab run 编号 [--variant 名称] [--repeat 次数]\n"
-      << "      编译、运行、取证、校验，并写报告。\n"
+      << "  syslab build 编号 [--variant debug|optimized] [--no-cache]\n"
+      << "      编译一个变体。默认用清单里的第一个变体。--no-cache 强制重新编译。\n"
+      << "  syslab run 编号 [--variant 名称] [--repeat 次数] [--no-cache]\n"
+      << "      编译、运行、取证、校验，并写报告。--no-cache 强制重新编译。\n"
       << "  syslab report 编号 --latest\n"
       << "      打印该实验最近一次的 report.md。\n"
       << "  syslab inspect 编号 --artifact disassembly|report|elf\n"
@@ -94,6 +100,8 @@ void print_usage() {
       << "  syslab inspect layout\n"
       << "  syslab env [--capabilities]\n"
       << "      环境快照。--capabilities 查看 objdump、perf 等是否可用。\n"
+      << "  syslab clean --keep 数量\n"
+      << "      每个实验保留最近的若干次运行，以及这些运行引用的构建。\n"
       << "  syslab toolchain list\n"
       << "  syslab toolchain inspect gcc|g++|clang|clang++\n"
       << "\n"
@@ -118,6 +126,7 @@ syslab::SessionConfig make_config(const Options& options) {
   config.artifacts_dir = syslab::join_path(options.root, "artifacts");
   config.variant = options.variant;
   config.repeat = options.repeat;
+  config.use_cache = options.use_cache;
   return config;
 }
 
@@ -399,6 +408,23 @@ int main(int argc, char** argv) {
         options.capabilities = true;
       } else if (argument == "--latest") {
         options.latest = true;
+      } else if (argument == "--all") {
+        options.all = true;
+      } else if (argument == "--no-cache") {
+        options.use_cache = false;
+      } else if (argument == "--keep") {
+        std::string text;
+        if (!take_value(&index, argc, argv, &text)) {
+          throw syslab::Error(syslab::Error::Code::InvalidArgument, "--keep requires a number");
+        }
+        try {
+          options.keep = std::stoi(text);
+        } catch (const std::exception&) {
+          throw syslab::Error(syslab::Error::Code::InvalidArgument, "--keep requires a number");
+        }
+        if (options.keep < 0) {
+          throw syslab::Error(syslab::Error::Code::InvalidArgument, "--keep must be zero or positive");
+        }
       } else if (!argument.empty() && argument[0] == '-') {
         throw syslab::Error(syslab::Error::Code::InvalidArgument, "unknown option " + argument);
       } else {
@@ -412,6 +438,19 @@ int main(int argc, char** argv) {
     syslab::Registry registry;
     const auto load = [&]() { registry.load_tree(syslab::join_path(options.root, "experiments")); };
     const std::string command = positionals[0];
+    if (command == "clean") {
+      if (positionals.size() != 1) {
+        throw syslab::Error(syslab::Error::Code::InvalidArgument, "clean does not take an experiment id");
+      }
+      if (options.keep < 0) {
+        throw syslab::Error(syslab::Error::Code::InvalidArgument, "clean requires --keep N");
+      }
+      const syslab::CleanReport report =
+          syslab::clean_artifacts(syslab::join_path(options.root, "artifacts"), static_cast<std::size_t>(options.keep));
+      std::cout << "removed runs=" << report.runs_removed << " builds=" << report.builds_removed
+                << " cache=" << report.cache_removed << "\n";
+      return 0;
+    }
     if (command == "list") {
       load();
       const std::vector<std::string> ids = registry.ids_for_module(options.module);
@@ -523,6 +562,31 @@ int main(int argc, char** argv) {
         }
       }
       return syslab::command_web(options.root, port, make_config(options), registry);
+    }
+    if (command == "validate" && options.all) {
+      if (positionals.size() > 1) {
+        throw syslab::Error(syslab::Error::Code::InvalidArgument, "validate --all does not take an experiment id");
+      }
+      load();
+      const std::vector<std::string> issues = syslab::check_catalog(options.root, registry);
+      if (options.format == "json") {
+        syslab::Json summary = syslab::Json::object();
+        summary.set("state", syslab::Json::string(issues.empty() ? "PASSED" : "FAILED"));
+        syslab::Json array = syslab::Json::array();
+        for (const std::string& issue : issues) {
+          array.push(syslab::Json::string(issue));
+        }
+        summary.set("issues", std::move(array));
+        std::cout << summary.dump();
+      } else if (issues.empty()) {
+        std::cout << "PASSED 实验目录、索引和课程标识一致\n";
+      } else {
+        std::cout << "FAILED\n";
+        for (const std::string& issue : issues) {
+          std::cout << "- " << issue << "\n";
+        }
+      }
+      return issues.empty() ? 0 : 2;
     }
     if (positionals.size() < 2 && command != "list" && command != "env") {
       throw syslab::Error(syslab::Error::Code::InvalidArgument, command + " requires an experiment id");

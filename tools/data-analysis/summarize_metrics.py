@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Collect SYSLAB_METRIC lines from experiment stdout."""
+"""Collect SYSLAB_METRIC lines from experiment stdout.
+
+A metric is malformed unless it has a non-empty name and an '=' separator.
+That is the same name=value rule as parse_protocol in src/observation/protocol.cpp.
+"""
 
 import collections
 import sys

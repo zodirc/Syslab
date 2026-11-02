@@ -128,6 +128,25 @@ struct EnvironmentSnapshot {
   SampledField libc_version;
   SampledField page_size;
   SampledField cpu_topology;
+  /**
+   * scaling_governor for the visible CPUs. One shared value when every readable
+   * CPU reports the same governor. A per-CPU list when they differ. Unavailable
+   * when sysfs does not expose the file.
+   * 可见 CPU 的 scaling_governor。可读的 CPU 都相同时报一个共同值，不同时按 CPU 列出。sysfs 没有该文件时为 Unavailable。
+   */
+  SampledField cpufreq_governor;
+  /**
+   * The first three fields of /proc/loadavg.
+   * /proc/loadavg 的前三个字段。
+   */
+  SampledField load_average;
+  /**
+   * CPU set of the runner process from sched_getaffinity. The runner does not
+   * call sched_setaffinity, so this is the inherited mask, limited to
+   * CPU_SETSIZE processors.
+   * 运行进程经 sched_getaffinity 得到的 CPU 集合。运行器不调用 sched_setaffinity，因此这是继承的掩码，范围限于 CPU_SETSIZE 个处理器。
+   */
+  SampledField cpu_affinity;
   std::string environment_id;
 };
 
@@ -146,6 +165,35 @@ struct BuildRecord {
   std::vector<std::string> link_arguments;
   std::string source_revision;
   std::string source_revision_reason;
+  /**
+   * True when git status --porcelain produced output. Meaningful only when
+   * source_dirty_known is true. A false value with source_dirty_known false is
+   * not a clean worktree.
+   * git status --porcelain 有输出时为真。仅当 source_dirty_known 为真时才有意义。
+   * source_dirty_known 为假时，false 不表示工作区干净。
+   */
+  bool source_dirty = false;
+  bool source_dirty_known = false;
+  std::string source_dirty_reason;
+  /**
+   * Lowercase SHA-256 of the manifest sources and the compiler dependency
+   * prerequisites, or the literal unavailable when the set could not be hashed.
+   * 清单源文件与编译器依赖前提的小写 SHA-256。无法计算时为字面量 unavailable。
+   */
+  std::string source_digest;
+  std::string source_digest_reason;
+  /**
+   * Path, CMake build type, and SHA-256 of the linked libsyslab.a.
+   * Each is the literal unavailable when this variant does not link that library.
+   * 所链接 libsyslab.a 的路径、CMake 构建类型和 SHA-256。
+   * 该变体不链接这个库时，三者都是字面量 unavailable。
+   */
+  std::string library_path;
+  std::string library_build_type;
+  std::string library_digest;
+  std::string library_reason;
+  bool cache_hit = false;
+  std::string cache_build_id;
   std::string artifact_digest;
   std::string started_at;
   std::string completed_at;
@@ -184,6 +232,12 @@ struct ObservationRecord {
   ObservationKind kind;
   std::string tool_name;
   std::string tool_version;
+  /**
+   * Absolute path returned by the shared tool lookup. Empty when the
+   * observation does not come from an external tool.
+   * 统一工具查找返回的绝对路径。观察不来自外部工具时为空。
+   */
+  std::string tool_path;
   std::string artifact_path;
   std::string content_digest;
   std::string collected_at;

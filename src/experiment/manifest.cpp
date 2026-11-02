@@ -251,8 +251,28 @@ Manifest load_manifest(const std::string& path) {
   if (manifest.observe.empty()) {
     manifest.observe = {"stdout", "stderr", "exit_status"};
   }
+  bool wants_performance_counter = false;
   for (const std::string& observation : manifest.observe) {
-    parse_observation_kind(observation);
+    if (parse_observation_kind(observation) == ObservationKind::PerformanceCounter) {
+      wants_performance_counter = true;
+    }
+  }
+  manifest.perf_events = string_list(root, "perf_events", false);
+  if (wants_performance_counter && manifest.perf_events.empty()) {
+    throw Error(Error::Code::Validation, "performance_counter requires perf_events");
+  }
+  for (const std::string& event : manifest.perf_events) {
+    if (event.empty()) {
+      throw Error(Error::Code::Validation, "perf event name is empty");
+    }
+    for (char character : event) {
+      const bool ok = (character >= 'A' && character <= 'Z') || (character >= 'a' && character <= 'z') ||
+                      (character >= '0' && character <= '9') || character == '_' || character == '.' ||
+                      character == ':' || character == '/' || character == '-';
+      if (!ok) {
+        throw Error(Error::Code::Validation, "perf event name contains an unsupported character: " + event);
+      }
+    }
   }
 
   const Yaml& verify = root.require("verify");
@@ -345,6 +365,11 @@ Json manifest_to_json(const Manifest& manifest) {
     concepts.push(Json::string(concept_name));
   }
   json.set("concepts", std::move(concepts));
+  Json perf_events = Json::array();
+  for (const std::string& event : manifest.perf_events) {
+    perf_events.push(Json::string(event));
+  }
+  json.set("perf_events", std::move(perf_events));
   Json basis = Json::array();
   for (const std::string& item : manifest.basis) {
     basis.push(Json::string(item));

@@ -19,6 +19,7 @@ struct SessionConfig {
   std::string artifacts_dir;
   std::string variant;
   int repeat = -1;
+  bool use_cache = true;
 };
 
 /**
@@ -73,5 +74,39 @@ SessionOutput build_session(const Manifest& manifest, const SessionConfig& confi
  * 终止生命周期结果。
  */
 SessionOutput execute_session(const Manifest& manifest, const SessionConfig& config);
+
+/**
+ * @brief Counts removed by one clean_artifacts call.
+ * 一次 clean_artifacts 调用删除的数量。
+ */
+struct CleanReport {
+  int runs_removed = 0;
+  int builds_removed = 0;
+  int cache_removed = 0;
+};
+
+/**
+ * @brief Keeps the newest run directories and the builds they reference.
+ * 保留最新的运行目录以及它们引用的构建目录。
+ *
+ * Run directory names sort by their batch-YYYYMMDDTHHMMSS prefix. For each
+ * experiment, the newest keep directories stay. Other run directories and
+ * build directories that no remaining run references are deleted. index.jsonl
+ * is rewritten from the kept runs. The build cache is trimmed separately;
+ * executables still referenced by a kept build stay in the cache.
+ * 运行目录名按 batch-YYYYMMDDTHHMMSS 前缀排序。每个实验保留最新的 keep 个目录。
+ * 其余运行目录，以及没有任何保留运行引用的构建目录，会被删除。index.jsonl 按保留的运行重写。
+ * 构建缓存单独裁剪；仍被保留构建引用的可执行文件留在缓存中。
+ *
+ * @param artifacts_dir Directory that contains runs/, builds/, cache/, and index.jsonl.
+ * 包含 runs/、builds/、cache/ 和 index.jsonl 的目录。
+ * @param keep Number of run directories to retain for each experiment.
+ * 每个实验保留的运行目录数。
+ * @return Counts of removed run directories, build directories, and cache entries.
+ * 删除的运行目录、构建目录和缓存条目数量。
+ * @throws Error Io when a directory cannot be removed or the index cannot be replaced.
+ * 目录无法删除或索引无法替换时抛出 Error Io。
+ */
+CleanReport clean_artifacts(const std::string& artifacts_dir, std::size_t keep);
 
 }  // namespace syslab

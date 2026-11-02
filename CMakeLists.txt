@@ -30,9 +30,11 @@ add_library(syslab
   src/experiment/manifest.cpp
   src/experiment/lifecycle.cpp
   src/experiment/registry.cpp
+  src/experiment/catalog.cpp
   src/experiment/session.cpp
   src/build/build_manager.cpp
   src/observation/elf.cpp
+  src/observation/protocol.cpp
   src/observation/report.cpp
   src/platform/linux/environment.cpp
   src/platform/linux/capability.cpp
@@ -60,8 +62,15 @@ target_include_directories(syslab
 target_compile_options(syslab PRIVATE -Wall -Wextra -Wno-deprecated-declarations -pthread)
 target_link_libraries(syslab PUBLIC pthread)
 
-add_executable(syslab_cli src/cli/main.cpp src/cli/learn.cpp)
+add_executable(syslab_cli
+  src/cli/main.cpp
+  src/cli/learn/course.cpp
+  src/cli/learn/render_html.cpp
+  src/cli/learn/render_terminal.cpp
+  src/cli/learn/web_server.cpp
+)
 target_link_libraries(syslab_cli PRIVATE syslab)
+target_compile_options(syslab_cli PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
 target_compile_definitions(syslab_cli PRIVATE
   SYSLAB_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
   SYSLAB_COMPILER="${CMAKE_CXX_COMPILER}"
@@ -70,9 +79,40 @@ target_compile_definitions(syslab_cli PRIVATE
 set_target_properties(syslab_cli PROPERTIES OUTPUT_NAME syslab)
 
 enable_testing()
-add_executable(syslab_tests tests/unit/test_main.cpp)
+add_executable(syslab_tests
+  tests/unit/test_main.cpp
+  src/cli/learn/course.cpp
+  src/cli/learn/render_html.cpp
+  src/cli/learn/render_terminal.cpp
+  src/cli/learn/web_server.cpp
+)
 target_link_libraries(syslab_tests PRIVATE syslab)
 target_compile_options(syslab_tests PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
-add_test(NAME unit COMMAND syslab_tests)
+target_include_directories(syslab_tests PRIVATE "${CMAKE_SOURCE_DIR}/src/cli")
+target_compile_definitions(syslab_tests PRIVATE SYSLAB_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
+set(SYSLAB_UNIT_TESTS
+  sha_and_yaml lifecycle arena_and_pool freelist_and_buddy size_and_cache locks
+  queues_and_stack epoch fiber_coroutine_and_steal dependencies_and_digest protocol
+  clean_artifacts catalog resolve_tool_and_perf_manifest process_capture_and_timeout
+  metric_summary_and_report course_html parsers mpmc_linearizability runner
+)
+foreach(test_name ${SYSLAB_UNIT_TESTS})
+  add_test(NAME ${test_name} COMMAND syslab_tests ${test_name})
+endforeach()
+add_test(NAME stress COMMAND syslab_tests stress)
+set_tests_properties(stress PROPERTIES LABELS stress)
+add_test(NAME catalog_cli COMMAND syslab_cli validate --all)
 add_test(NAME cpu001 COMMAND syslab_cli run CPU-001)
 set_tests_properties(cpu001 PROPERTIES TIMEOUT 120)
+
+add_executable(syslab_experiments tests/integration/run_experiments.cpp)
+target_link_libraries(syslab_experiments PRIVATE syslab)
+target_compile_options(syslab_experiments PRIVATE -Wall -Wextra -Wno-deprecated-declarations)
+target_compile_definitions(syslab_experiments PRIVATE
+  SYSLAB_SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+  SYSLAB_COMPILER="${CMAKE_CXX_COMPILER}"
+  SYSLAB_POLYFILL_DIR="${SYSLAB_POLYFILL_DIR}"
+  SYSLAB_LIBRARY_DIR="${CMAKE_BINARY_DIR}"
+)
+add_test(NAME experiments COMMAND syslab_experiments)
+set_tests_properties(experiments PROPERTIES LABELS experiments TIMEOUT 1800)
