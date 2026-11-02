@@ -752,7 +752,7 @@ std::string base64_encode(const std::string& input) {
 
 std::string motion_caption(const std::string& id) {
   if (id == "OBJ-001") {
-    return "源和浅拷贝指向同一块内存。源从 7 改成 9 时，浅拷贝一起变成 9，深拷贝仍指向自己的 7。";
+    return "在 C++ 对象模型中，指针成员得到地址。源存储从 7 改为 9 后，经该地址读到 9。另行分配的存储仍为 7。";
   }
   if (id == "SRV-002") {
     return "字节逐次进入缓冲。长度或载荷未齐时请求数保持 0，ping 收齐后请求数变为 1。";
@@ -899,7 +899,7 @@ void write_course_page(const std::string& root, const std::vector<Lesson>& lesso
   }
   page << "</aside>\n<main id=\"stage\">\n<article id=\"course\">\n<h1>课程编排</h1>\n"
           "<p>课程分为基础、进阶、方向。基础包括对象复制与移动、整数和浮点的内存表示、虚拟地址与所有权、进程与线程、互斥。进阶接在互斥之后，依次为其他锁、内存序、分配器、编译器改写、可执行文件与调用约定、缓存访问、协程。方向按页与日志、连接与队列、命名空间、访问控制、采样和帧、步骤和工具分列。</p>\n"
-          "<p>一节正文的顺序是问题、背景、图、名词、规则、成立的事实、本机演示、证明到哪一层。问题只有一句。背景写该机制所在层次中的处理过程及可观察结果。规则给出 C++ 标准、ABI 或相应操作系统接口中的规定。成立的事实给出本程序的核对结果。证明到哪一层列出本次核对不覆盖的范围。OBJ-001、CPU-001、OS-002、AT-001、STO-002 在规则之后设有填数。本机标准输出在「对照观测」之后显示。一组说明、机制与程序位于折叠区。</p>\n"
+          "<p>一节正文的顺序是背景、标题、重点、图、名词、规则、成立的事实、本机演示、证明到哪一层。背景写在标题之前。重点在标题下。背景写该机制所在层次中的处理过程及可观察结果。规则给出 C++ 标准、ABI 或相应操作系统接口中的规定。成立的事实给出本程序的核对结果。证明到哪一层列出本次核对不覆盖的范围。OBJ-001、CPU-001、OS-002、AT-001、STO-002 在规则之后设有填数。本机标准输出在「对照观测」之后显示。一组说明、机制与程序位于折叠区。</p>\n"
           "<p>同一层内更换分组时，导航为下一事实，并标出组名。更换层次时，导航为进入下一层。方向一列的末节，导航为另一方向。</p>\n"
           "</article>\n";
   for (std::size_t index = 0; index < lessons.size(); ++index) {
@@ -930,6 +930,11 @@ void write_course_page(const std::string& root, const std::vector<Lesson>& lesso
     const bool show_fact = has_brief && !brief->second.principle.empty() &&
                            brief->second.principle != brief->second.mechanism;
     const std::string focus = has_brief && !brief->second.focus.empty() ? brief->second.focus : lesson.title;
+    if (has_brief && !brief->second.background.empty()) {
+      page << "<section class=\"lead\"><h2>背景</h2>\n" << paragraph_html(brief->second.background) << "</section>\n";
+    }
+    page << "<h1>" << html_escape(lesson.title) << "</h1>\n";
+    page << "<p class=\"ask\">" << html_escape(focus) << "</p>\n";
     page << "<ol class=\"chain\">\n";
     const char* previous_label = nullptr;
     if (const Lesson* previous = track_neighbor(lessons, index, -1, &previous_label)) {
@@ -951,11 +956,7 @@ void write_course_page(const std::string& root, const std::vector<Lesson>& lesso
       }
       page << "</li>\n";
     }
-    page << "</ol>\n<h1>" << html_escape(lesson.title) << "</h1>\n";
-    page << "<p class=\"ask\">" << html_escape(focus) << "</p>\n";
-    if (has_brief && !brief->second.background.empty()) {
-      page << "<section class=\"lead\"><h2>背景</h2>\n" << paragraph_html(brief->second.background) << "</section>\n";
-    }
+    page << "</ol>\n";
     const std::string figure_text = figure == figures.end() ? std::string() : figure->second;
     if (!figure_text.empty()) {
       page << figure_html(figure_text, "");

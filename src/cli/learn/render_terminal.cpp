@@ -129,8 +129,15 @@ void print_terminal(const std::string& root, const std::vector<Lesson>& lessons,
   const std::string checks = markdown_section(readme, "程序实际检查的内容");
   const std::string limit = without_runner_notice(markdown_section(readme, "不由本实验断言的内容"));
   std::cout << "\n第 " << (index + 1) << " 节 / " << lessons.size() << "\n";
+  const auto brief = copy.briefs.find(lesson.id);
+  if (brief != copy.briefs.end() && !brief->second.background.empty()) {
+    std::cout << "背景\n" << brief->second.background << "\n\n";
+  }
   std::cout << lesson.title << "\n";
   std::cout << lesson.layer << " · " << lesson.group << "\n\n";
+  if (brief != copy.briefs.end() && !brief->second.focus.empty()) {
+    std::cout << brief->second.focus << "\n\n";
+  }
   const char* previous_label = nullptr;
   if (const Lesson* previous = track_neighbor(lessons, index, -1, &previous_label)) {
     std::cout << previous_label << "  " << previous->title << "\n";
@@ -147,14 +154,7 @@ void print_terminal(const std::string& root, const std::vector<Lesson>& lessons,
     }
   }
   std::cout << "\n";
-  const auto brief = copy.briefs.find(lesson.id);
   const bool group_start = index == 0 || lessons[index - 1].group != lesson.group || lessons[index - 1].layer != lesson.layer;
-  if (brief != copy.briefs.end() && !brief->second.focus.empty()) {
-    std::cout << brief->second.focus << "\n\n";
-  }
-  if (brief != copy.briefs.end() && !brief->second.background.empty()) {
-    std::cout << "背景\n" << brief->second.background << "\n\n";
-  }
   const auto figure = figures.find(lesson.id);
   if (figure != figures.end() && !figure->second.empty()) {
     std::cout << figure->second << "\n\n";
