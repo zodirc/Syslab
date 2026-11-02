@@ -2,7 +2,7 @@
 
 ## 通过条件
 
-两种循环的校验和都不为 0。耗时以微秒度量写入 SYSLAB_METRIC。
+固定走向的校验和等于 20 次全元素之和。混合走向的校验和等于按条件累加的和。耗时以微秒度量写入 SYSLAB_METRIC。
 
 进程退出码为 0，标准输出包含一行 `SYSLAB_RESULT status=pass`。主机无法完成该实验时，程序输出 `SYSLAB_RESULT status=unsupported`，运行器把结果记为 UNSUPPORTED。
 

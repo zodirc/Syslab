@@ -25,13 +25,23 @@ int main() {
   const auto mixed = accumulate(true);
   syslab_metric("predictable_us", predictable.second);
   syslab_metric("mixed_us", mixed.second);
-  if (predictable.first == 0 || mixed.first == 0) {
-    syslab_step("校验和为 0。");
+  const std::uint64_t predictable_sum = 20ull * (static_cast<std::uint64_t>(kSize - 1) * static_cast<std::uint64_t>(kSize) / 2);
+  std::uint64_t mixed_sum = 0;
+  for (int repeat = 0; repeat < 20; ++repeat) {
+    for (int index = 0; index < kSize; ++index) {
+      const int value = values[static_cast<std::size_t>(index)];
+      if (((value * 17) & 64) != 0) {
+        mixed_sum += static_cast<std::uint64_t>(value);
+      }
+    }
+  }
+  if (predictable.first != predictable_sum || mixed.first != mixed_sum) {
+    syslab_step("校验和与按分支条件累加的结果不一致。");
     return syslab_fail("checksum");
   }
   syslab_note("LANG", "both loops compute a defined sum");
   syslab_note("MICROARCH", "a shorter predictable loop is not required; branch-predictor behavior is not a language rule");
   syslab_note("OBSERVED", "hardware performance counters were not required for the pass condition");
-    syslab_step("固定走向的循环和混合走向的循环都得到非 0 校验和。耗时只作为一次样本记录。");
+    syslab_step("固定走向的校验和等于 20 次全元素之和。混合走向的校验和等于按条件累加的和。耗时只作为一次样本记录。");
   return syslab_pass();
 }

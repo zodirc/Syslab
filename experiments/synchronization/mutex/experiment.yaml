@@ -47,3 +47,5 @@ knowledge:
     - mutual-exclusion
   basis:
     - OBSERVED
+  prerequisites:
+    - OS-003

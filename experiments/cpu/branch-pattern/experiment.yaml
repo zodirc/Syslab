@@ -30,6 +30,8 @@ observe:
     - stdout
     - stderr
     - exit_status
+perf_events:
+    - cycles
 verify:
   checks:
     - name: exit

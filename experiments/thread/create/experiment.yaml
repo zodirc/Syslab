@@ -49,3 +49,5 @@ knowledge:
     - tid
   basis:
     - OS
+  prerequisites:
+    - OS-001

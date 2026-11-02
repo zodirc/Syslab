@@ -22,10 +22,11 @@ int main() {
     return syslab_fail("order");
   }
   syslab::CoroutineScheduler failing;
-  failing.spawn([]() -> syslab::Task {
+  auto boom = []() -> syslab::Task {
     throw std::runtime_error("boom");
     co_return;
-  }());
+  };
+  failing.spawn(boom());
   bool threw = false;
   try {
     failing.run();

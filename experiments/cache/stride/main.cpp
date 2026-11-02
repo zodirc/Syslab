@@ -21,11 +21,16 @@ int main() {
   const auto strided = walk(16);
   syslab_metric("sequential_us", sequential.second);
   syslab_metric("stride_us", strided.second);
-  if (sequential.first == 0 || strided.first == 0) {
-    syslab_step("校验和为 0。");
+  constexpr std::uint64_t kSequential = 4ull * (static_cast<std::uint64_t>(kSize - 1) * kSize / 2);
+  constexpr std::size_t kGroups = kSize / 16;
+  constexpr std::uint64_t kStrided = 4ull * 16ull * (static_cast<std::uint64_t>(kGroups - 1) * kGroups / 2);
+  if (sequential.first != kSequential || strided.first != kStrided) {
+    syslab_step("校验和与按步长累加的结果不一致。");
     return syslab_fail("checksum");
   }
+  syslab_metric("sequential_sum", static_cast<long long>(sequential.first));
+  syslab_metric("stride_sum", static_cast<long long>(strided.first));
   syslab_note("MICROARCH", "a slower stride is not required; the checksums are the correctness result");
-    syslab_step("顺序访问和跨步访问的校验和都不为 0。耗时只作为一次样本记录。");
+  syslab_step("顺序访问和跨步 16 的校验和分别等于按步长累加的结果。耗时只作为一次样本记录。");
   return syslab_pass();
 }

@@ -50,3 +50,5 @@ knowledge:
   basis:
     - LANG
     - ABI
+  prerequisites:
+    - CPU-001

@@ -47,3 +47,5 @@ knowledge:
     - data-race
   basis:
     - LANG
+  prerequisites:
+    - SYNC-004

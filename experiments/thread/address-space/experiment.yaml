@@ -47,3 +47,5 @@ knowledge:
     - address-space
   basis:
     - OS
+  prerequisites:
+    - OS-003

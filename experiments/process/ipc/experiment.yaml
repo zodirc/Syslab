@@ -48,3 +48,5 @@ knowledge:
     - shared-memory
   basis:
     - OS
+  prerequisites:
+    - OS-001
