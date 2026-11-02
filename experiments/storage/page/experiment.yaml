@@ -1,0 +1,51 @@
+schema_version: 1
+experiment:
+  id: STO-002
+  name: page-read
+  module: storage.page
+  description: "Read page 1 by page number and leave page 0 unchanged."
+  risk: normal
+  tags:
+    - storage
+platform:
+  os: linux
+  architectures:
+    - x86_64
+    - aarch64
+build:
+  target: exp_sto_002
+  standard: c++20
+  variants:
+    - name: debug
+      build_type: Debug
+    - name: optimized
+      build_type: Release
+run:
+  executable: exp_sto_002
+  timeout_ms: 20000
+  repetitions: 1
+  arguments: []
+observe:
+    - stdout
+    - stderr
+    - exit_status
+verify:
+  checks:
+    - name: exit
+      type: exit_code
+      expected: "0"
+    - name: marker
+      type: result_marker
+      expected: pass
+artifacts:
+  preserve:
+    - executable
+    - build_log
+    - run_log
+knowledge:
+  concepts:
+    - page
+  basis:
+    - OS
+  prerequisites:
+    - OS-008
