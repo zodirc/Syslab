@@ -61,9 +61,11 @@ class RwLock {
    */
   void lock_shared() {
     LockGuard<Mutex> guard(mutex_);
+    ++readers_waiting_;
     while (writer_active_ || writers_waiting_ > 0) {
       reader_cv_.wait(mutex_);
     }
+    --readers_waiting_;
     ++readers_;
   }
 
@@ -84,11 +86,34 @@ class RwLock {
     }
   }
 
+  /**
+   * @brief Returns how many writers are blocked in lock.
+   * 返回停在 lock 里的写者数。
+   * @return Writers that have incremented the wait count and have not yet become the active writer.
+   * 已经计入等待、尚未成为当前写者的写者数。
+   */
+  int waiting_writers() {
+    LockGuard<Mutex> guard(mutex_);
+    return writers_waiting_;
+  }
+
+  /**
+   * @brief Returns how many readers are blocked in lock_shared.
+   * 返回停在 lock_shared 里的读者数。
+   * @return Readers that have incremented the wait count and have not yet become active readers.
+   * 已经计入等待、尚未成为当前读者的读者数。
+   */
+  int waiting_readers() {
+    LockGuard<Mutex> guard(mutex_);
+    return readers_waiting_;
+  }
+
  private:
   Mutex mutex_;
   ConditionVariable reader_cv_;
   ConditionVariable writer_cv_;
   int readers_ = 0;
+  int readers_waiting_ = 0;
   int writers_waiting_ = 0;
   bool writer_active_ = false;
 };

@@ -48,6 +48,16 @@ class TicketLock {
     serving_.store(now, std::memory_order_release);
   }
 
+  /**
+   * @brief Returns how many tickets have been handed out.
+   * 返回已经发出的票数。
+   * @return The value of the ticket counter. It increases when a caller reaches the fetch-add in lock.
+   * 取号计数的当前值。调用者执行到 lock 里的 fetch-add 后增加。
+   * @note A caller may hold a ticket and still be spinning. This call does not acquire the lock.
+   * 调用者可能已经取到号，但仍在自旋。这次调用不获取锁。
+   */
+  std::uint32_t issued() const noexcept { return next_.load(std::memory_order_acquire); }
+
  private:
   std::atomic<std::uint32_t> next_{0};
   std::atomic<std::uint32_t> serving_{0};

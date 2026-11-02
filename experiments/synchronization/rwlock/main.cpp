@@ -1,34 +1,90 @@
 #include "experiments/common/check.hpp"
 #include "syslab/synchronization/rw_lock.hpp"
+
+#include <atomic>
+#include <chrono>
 #include <thread>
-#include <vector>
-// 应用：读写锁下写者的计数被共享持有者打断，或共享路径无法完成。
-// 原理：写者持有互斥的写锁并递增 100 次，结果为 100。三个线程的共享锁路径能够完成。写优先是这个实现的策略。POSIX 读写锁还有其他合法策略。
+
+// 应用：后到的读者插到已经排队的写者前面，或两个写者的计数互相覆盖。
+// 原理：已有共享持有者时，先排队的写者在共享持有者离开后进入；后到的读者等这个写者离开。两个写者各递增 100 次，计数为 200，写锁不重叠。
+
+namespace {
+
+bool wait_until(const std::chrono::steady_clock::time_point& deadline, syslab::RwLock& lock, bool writers) {
+  while ((writers ? lock.waiting_writers() : lock.waiting_readers()) < 1) {
+    if (std::chrono::steady_clock::now() > deadline) {
+      return false;
+    }
+    std::this_thread::yield();
+  }
+  return true;
+}
+
+}  // namespace
+
 int main() {
   syslab::RwLock lock;
-  int writes = 0;
-  std::vector<std::thread> threads;
-  for (int index = 0; index < 3; ++index) {
-    threads.emplace_back([&]() {
-      for (int step = 0; step < 200; ++step) {
-        lock.lock_shared();
-        lock.unlock_shared();
-      }
-    });
+  lock.lock_shared();
+  std::atomic<int> writer_ran{0};
+  std::atomic<int> reader_before_writer{0};
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  std::thread writer([&]() {
+    lock.lock();
+    writer_ran.store(1, std::memory_order_release);
+    lock.unlock();
+  });
+  if (!wait_until(deadline, lock, true)) {
+    lock.unlock_shared();
+    writer.join();
+    syslab_step("写者没有排进等待队列。");
+    return syslab_fail("writer-not-queued");
   }
-  threads.emplace_back([&]() {
+  std::thread reader([&]() {
+    lock.lock_shared();
+    if (writer_ran.load(std::memory_order_acquire) != 1) {
+      reader_before_writer.store(1, std::memory_order_relaxed);
+    }
+    lock.unlock_shared();
+  });
+  if (!wait_until(deadline, lock, false)) {
+    lock.unlock_shared();
+    writer.join();
+    reader.join();
+    syslab_step("后到的读者没有排进等待队列。");
+    return syslab_fail("reader-not-queued");
+  }
+  lock.unlock_shared();
+  writer.join();
+  reader.join();
+  if (writer_ran.load() != 1 || reader_before_writer.load() != 0) {
+    syslab_step("后到的读者在已排队的写者之前进入。");
+    return syslab_fail("write-preference");
+  }
+
+  int depth = 0;
+  int writes = 0;
+  int overlap = 0;
+  auto write = [&]() {
     for (int step = 0; step < 100; ++step) {
       lock.lock();
+      if (++depth != 1) {
+        overlap = 1;
+      }
       ++writes;
+      --depth;
       lock.unlock();
     }
-  });
-  for (std::thread& thread : threads) thread.join();
-  if (writes != 100) {
-    syslab_step("写锁下的递增结果不是 100。");
-    return syslab_fail("writes");
+  };
+  std::thread left(write);
+  std::thread right(write);
+  left.join();
+  right.join();
+  if (writes != 200 || overlap != 0) {
+    syslab_step("两个写者的计数不是 200，或写锁发生重叠。");
+    return syslab_fail("write-exclusion");
   }
-  syslab_note("OBSERVED", "this rwlock prefers writers; shared holders exclude the writer");
-    syslab_step("写锁互斥下的递增结果为 100。共享锁路径已经完成。");
+  syslab_metric("writes", writes);
+  syslab_note("OBSERVED", "a queued writer entered before the later reader; two writers did not overlap");
+  syslab_step("后到的读者在已排队的写者之后进入。两个写者各递增 100 次，计数为 200，写锁没有重叠。");
   return syslab_pass();
 }
